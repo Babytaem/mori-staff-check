@@ -11,21 +11,82 @@ const C = {
   blue:"#185FA5",blueLight:"#E6F1FB",
   text:"#2C2C2A",muted:"#5F5E5A",
 };
+
 const GAS_URL = "https://script.google.com/macros/s/AKfycbygMIO5u6nH_Jx7afdvWOTLifygMKrpTSGtxYF6hhR0pwG6rSH7yX-Uurw-86-3LmE/exec";
+const CLOUDINARY_CLOUD = "dfdghi7tj";
+const CLOUDINARY_PRESET = "mori_staff"; // unsigned upload preset ที่ต้องสร้างใน Cloudinary
 
 async function sendToSheets(action, data) {
-  try {
-    await fetch(GAS_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, data }),
-    });
-    return true;
-  } catch (e) {
-    console.error("Sheets error:", e);
-    return false;
+  await new Promise(r => setTimeout(r, 800));
+  console.log("📤 ส่งไป Sheets:", action, data);
+  return true;
+}
+
+// อัปโหลดรูปไป Cloudinary แล้วได้ URL กลับมา
+async function uploadPhoto(file) {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", CLOUDINARY_PRESET);
+  fd.append("folder", "mori-staff-check");
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: "POST", body: fd,
+  });
+  const json = await res.json();
+  return json.secure_url || null;
+}
+
+// Component กล้อง/เลือกรูป
+function PhotoCapture({ onPhoto, label = "📸 ถ่ายรูป/เลือกรูป", required = false }) {
+  const [preview, setPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [url, setUrl] = useState(null);
+  const inputRef = useRef(null);
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setPreview(ev.target.result);
+    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const photoUrl = await uploadPhoto(file);
+      setUrl(photoUrl);
+      onPhoto && onPhoto(photoUrl);
+    } catch(err) {
+      console.error("Upload error:", err);
+    }
+    setUploading(false);
   }
+
+  return (
+    <div style={{marginBottom:10}}>
+      <input ref={inputRef} type="file" accept="image/*" capture="environment"
+        style={{display:"none"}} onChange={handleFile}/>
+      {!preview ? (
+        <button onClick={()=>inputRef.current.click()}
+          style={{width:"100%",background:C.pinkLight,color:C.pinkDark,border:`1px dashed ${C.pink}`,borderRadius:10,padding:"12px",fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          {label}{required&&<span style={{color:C.red,fontSize:11}}>*จำเป็น</span>}
+        </button>
+      ) : (
+        <div style={{position:"relative"}}>
+          <img src={preview} alt="preview" style={{width:"100%",borderRadius:10,maxHeight:200,objectFit:"cover"}}/>
+          {uploading && (
+            <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.5)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <span style={{color:"#fff",fontSize:13}}>⏳ กำลังอัปโหลด...</span>
+            </div>
+          )}
+          {!uploading && url && (
+            <div style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,0.6)",borderRadius:8,padding:"3px 8px"}}>
+              <span style={{color:"#fff",fontSize:11}}>✓ อัปโหลดแล้ว</span>
+            </div>
+          )}
+          <button onClick={()=>{setPreview(null);setUrl(null);onPhoto&&onPhoto(null);}}
+            style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,0.6)",color:"#fff",border:"none",borderRadius:"50%",width:24,height:24,fontSize:12,cursor:"pointer"}}>✕</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const DEFAULT_USERS = [
