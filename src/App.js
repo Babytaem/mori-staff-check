@@ -167,7 +167,7 @@ function TaskModal({task:t, me, onClose, onSubmit, onApprove, onReject}){
             setUploading(true);
             setTimeout(()=>{const r=mockAI();setAi(r);setUploading(false);onSubmit(t.id,note,r);},1200);
           }} disabled={uploading} style={{width:"100%",background:C.pinkDark,color:"#fff",border:"none",borderRadius:10,padding:"12px",fontSize:14,fontWeight:500,cursor:"pointer"}}>
-            {uploading?"กำลังวิเคราะห์ AI... 🤖":photoUrl?"✅ ส่งงาน":"กรุณาถ่ายรูปก่อนส่งงาน"}
+            {uploading?"กำลังวิเคราะห์ AI... 🤖":"📸 ถ่ายรูปและส่งงาน"}
           </button>
         </>}
         {canApprove&&<div style={{display:"flex",gap:8,marginTop:8}}>
