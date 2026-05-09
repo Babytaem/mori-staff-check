@@ -11,14 +11,21 @@ const C = {
   blue:"#185FA5",blueLight:"#E6F1FB",
   text:"#2C2C2A",muted:"#5F5E5A",
 };
-
 const GAS_URL = "https://script.google.com/macros/s/AKfycbygMIO5u6nH_Jx7afdvWOTLifygMKrpTSGtxYF6hhR0pwG6rSH7yX-Uurw-86-3LmE/exec";
 
-// จำลองการส่งข้อมูล (ใน Claude sandbox ส่งจริงไม่ได้ แต่เมื่อ deploy บน Vercel จะส่งได้จริง)
 async function sendToSheets(action, data) {
-  await new Promise(r => setTimeout(r, 800)); // จำลอง delay
-  console.log("📤 ส่งไป Sheets:", action, data);
-  return true;
+  try {
+    await fetch(GAS_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, data }),
+    });
+    return true;
+  } catch (e) {
+    console.error("Sheets error:", e);
+    return false;
+  }
 }
 
 const DEFAULT_USERS = [
