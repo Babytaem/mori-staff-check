@@ -156,19 +156,53 @@ function TaskModal({task:t, me, onClose, onSubmit, onApprove, onReject}){
             {t.history.map((h,i)=><div key={i} style={{background:C.cream,borderRadius:8,padding:"6px 10px",marginBottom:4,fontSize:11}}><span style={{color:C.muted}}>{h.time} · {h.by}</span> — {h.action}{h.note?` "${h.note}"`:""}</div>)}
           </div>
         )}
-        {canSubmit&&<>
-          <textarea placeholder="หมายเหตุ..." value={note} onChange={e=>setNote(e.target.value)} style={{width:"100%",borderRadius:8,border:"0.5px solid #E8E3DA",padding:8,fontSize:12,resize:"none",height:50,boxSizing:"border-box",fontFamily:"sans-serif",marginBottom:8}}/>
-          {ai&&<div style={{background:ai.score>=80?C.greenLight:ai.score>=65?C.yellowLight:C.redLight,borderRadius:10,padding:10,marginBottom:10}}>
-            <div style={{fontWeight:500,fontSize:13}}>🤖 AI วิเคราะห์รูป: {ai.score}/100</div>
-            <div style={{fontSize:12,marginTop:2}}>ผล: {ai.status}</div>
-            <div style={{fontSize:11,color:C.muted,marginTop:2}}>{ai.note}</div>
-          </div>}
-          <button onClick={()=>{
-            setUploading(true);
-            setTimeout(()=>{const r=mockAI();setAi(r);setUploading(false);onSubmit(t.id,note,r);},1200);
-          }} disabled={uploading} style={{width:"100%",background:C.pinkDark,color:"#fff",border:"none",borderRadius:10,padding:"12px",fontSize:14,fontWeight:500,cursor:"pointer"}}>
-            {uploading?"กำลังวิเคราะห์ AI... 🤖":"📸 ถ่ายรูปและส่งงาน"}
-          </button>
+      {canSubmit&&<>
+          <PhotoCapture
+            label="📸 ถ่ายรูปหลักฐานก่อน (บังคับ)"
+            required={true}
+            onPhoto={url=>{
+              setPhotoUrl(url);
+              if(url){
+                setUploading(true);
+                setTimeout(()=>{setAi(mockAI());setUploading(false);},1000);
+              } else {
+                setAi(null);
+              }
+            }}
+          />
+          {uploading&&(
+            <div style={{background:"#E6F1FB",borderRadius:10,padding:10,marginBottom:10,textAlign:"center",fontSize:13,color:"#185FA5"}}>
+              🤖 กำลังวิเคราะห์รูปภาพ...
+            </div>
+          )}
+          {ai&&!uploading&&(
+            <div style={{background:ai.score>=80?"#EAF3DE":ai.score>=65?"#FAEEDA":"#FCEBEB",borderRadius:10,padding:10,marginBottom:10}}>
+              <div style={{fontWeight:500,fontSize:13}}>🤖 AI วิเคราะห์รูป: {ai.score}/100</div>
+              <div style={{fontSize:12,marginTop:2}}>ผล: {ai.status}</div>
+              <div style={{fontSize:11,color:"#5F5E5A",marginTop:2}}>{ai.note}</div>
+            </div>
+          )}
+          {ai&&!uploading&&(
+            <>
+              <textarea
+                placeholder="หมายเหตุ (ถ้ามี)..."
+                value={note}
+                onChange={e=>setNote(e.target.value)}
+                style={{width:"100%",borderRadius:8,border:"0.5px solid #E8E3DA",padding:8,fontSize:12,resize:"none",height:50,boxSizing:"border-box",fontFamily:"sans-serif",marginBottom:8}}
+              />
+              <button
+                onClick={()=>{onSubmit(t.id,note,ai,photoUrl);}}
+                style={{width:"100%",background:"#993556",color:"#fff",border:"none",borderRadius:10,padding:"12px",fontSize:14,fontWeight:500,cursor:"pointer"}}
+              >
+                ✅ ส่งงาน
+              </button>
+            </>
+          )}
+          {!photoUrl&&!uploading&&(
+            <div style={{textAlign:"center",color:"#888780",fontSize:12,marginTop:8}}>
+              ถ่ายรูปก่อน จึงจะส่งงานได้ค่ะ
+            </div>
+          )}
         </>}
         {canApprove&&<div style={{display:"flex",gap:8,marginTop:8}}>
           <button onClick={()=>{onApprove(t.id);onClose();}} style={{flex:1,background:C.greenLight,color:C.green,border:"none",borderRadius:8,padding:10,cursor:"pointer",fontSize:13}}>✓ ผ่าน</button>
