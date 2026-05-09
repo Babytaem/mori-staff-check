@@ -33,7 +33,7 @@ textarea{resize:none;height:60px}
 .pb{width:100%;background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1;border-radius:10px;padding:12px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;margin-bottom:10px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .sb{border-radius:10px;padding:10px 12px;text-align:center}
-.tr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:.5px solid #E8E3DA;cursor:pointer;-webkit-tap-highlight-color:rgba(153,53,86,.1)}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:.5px solid #E8E3DA;cursor:pointer}
 .pb2{height:4px;background:#F1EFE8;border-radius:4px;margin:6px 0 8px;overflow:hidden}
 .pf{height:100%;border-radius:4px;background:#993556}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;-webkit-overflow-scrolling:touch}
@@ -43,126 +43,79 @@ textarea{resize:none;height:60px}
 .wb{font-size:11px;color:#A32D2D;background:#FCEBEB;border-radius:8px;padding:6px 10px;margin-bottom:10px}
 .sec{font-size:13px;font-weight:500;color:#5F5E5A;margin:10px 0 6px}
 .sync{font-size:11px;color:#185FA5;background:#E6F1FB;border-radius:10px;padding:2px 8px}
+.online-dot{width:7px;height:7px;border-radius:50%;background:#639922;display:inline-block;margin-right:3px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:24px">🐱<br><span style="font-size:13px;color:#5F5E5A;margin-top:8px;display:block">กำลังโหลด...</span></div></div>
 <script>
-const FB_CONFIG={apiKey:"AIzaSyAVk3RJy2vLErdc14nhaEehp68mHz16uEg",authDomain:"mori-staff-check.firebaseapp.com",databaseURL:"https://mori-staff-check-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"mori-staff-check",storageBucket:"mori-staff-check.firebasestorage.app",messagingSenderId:"218457293626",appId:"1:218457293626:web:79bb0d0623309871b5c603"};
+// ══════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════
+const FB_CONFIG={
+  apiKey:"AIzaSyAVk3RJy2vLErdc14nhaEehp68mHz16uEg",
+  authDomain:"mori-staff-check.firebaseapp.com",
+  databaseURL:"https://mori-staff-check-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"mori-staff-check",
+  storageBucket:"mori-staff-check.firebasestorage.app",
+  messagingSenderId:"218457293626",
+  appId:"1:218457293626:web:79bb0d0623309871b5c603"
+};
+const GAS    = "https://script.google.com/macros/s/AKfycbygMIO5u6nH_Jx7afdvWOTLifygMKrpTSGtxYF6hhR0pwG6rSH7yX-Uurw-86-3LmE/exec";
+const CLD    = "dfdghi7tj";
+const PRESET = "mori_staff";
 
-// Firebase helpers
-let db=null;
+// ══════════════════════════════════════════════
+//  FIREBASE HELPERS
+// ══════════════════════════════════════════════
+let _fbReady = false;
+let _fbQueue = [];   // queue callbacks ที่รอ firebase init
+
 async function initFB(){
-  if(db)return db;
-  const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const {getDatabase,ref,set,get,onValue,update}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
-  const app=initializeApp(FB_CONFIG);
-  db=getDatabase(app);
-  window._fb={ref,set,get,onValue,update,db};
-  return db;
+  if(_fbReady) return;
+  const {initializeApp}  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const {getDatabase,ref,set,get,onValue,update} = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  const app = initializeApp(FB_CONFIG);
+  const db  = getDatabase(app);
+  window._fb = {ref,set,get,onValue,update,db};
+  _fbReady = true;
 }
 
-async function fbSet(path,data){
-  try{
-    await initFB();
-    const {ref,set,db}=window._fb;
-    await set(ref(db,path),data);
-  }catch(e){console.error("fbSet:",e);}
+async function fbSet(path, data){
+  try{ await initFB(); const {ref,set,db}=window._fb; await set(ref(db,path),data); }
+  catch(e){ console.error("fbSet:",e); }
 }
-
-async function fbUpdate(path,data){
-  try{
-    await initFB();
-    const {ref,update,db}=window._fb;
-    await update(ref(db,path),data);
-  }catch(e){console.error("fbUpdate:",e);}
+async function fbUpdate(path, data){
+  try{ await initFB(); const {ref,update,db}=window._fb; await update(ref(db,path),data); }
+  catch(e){ console.error("fbUpdate:",e); }
 }
-
 async function fbGet(path){
-  try{
-    await initFB();
-    const {ref,get,db}=window._fb;
-    const snap=await get(ref(db,path));
-    return snap.exists()?snap.val():null;
-  }catch(e){console.error("fbGet:",e);return null;}
+  try{ await initFB(); const {ref,get,db}=window._fb; const snap=await get(ref(db,path)); return snap.exists()?snap.val():null; }
+  catch(e){ console.error("fbGet:",e); return null; }
 }
-
-function fbListen(path,cb){
+function fbListen(path, cb){
   initFB().then(()=>{
     const {ref,onValue,db}=window._fb;
-    onValue(ref(db,path),snap=>{cb(snap.exists()?snap.val():null);});
+    onValue(ref(db,path), snap=>{ cb(snap.exists()?snap.val():null); });
   });
 }
 
-// Load state from Firebase on start
-async function loadState(){
-  const today=todayISO;
-  // โหลดสถานะพนักงาน
-  const att=await fbGet(`attendance/${today}`);
-  if(att){
-    Object.entries(att).forEach(([name,data])=>{
-      const s=STAFF.find(x=>x.name===name);
-      if(s){s.checkIn=data.checkIn||null;s.checkOut=data.checkOut||null;s.status=data.status||"ยังไม่เข้างาน";}
-    });
-  }
-  // โหลดสถานะงาน
-  const tasks=await fbGet(`tasks/${today}`);
-  if(tasks){
-    Object.entries(tasks).forEach(([id,data])=>{
-      const upd=(arr)=>arr.map(t=>t.id===id?{...t,...data}:t);
-      TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
-      BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
-    });
-  }
-  // Start app
-render();
-loadState().then(()=>startListening());
-}
-
-// Listen realtime updates
-function startListening(){
-  const today=todayISO;
-  // ฟังสถานะพนักงาน
-  fbListen(`attendance/${today}`,(att)=>{
-    if(!att)return;
-    Object.entries(att).forEach(([name,data])=>{
-      const s=STAFF.find(x=>x.name===name);
-      if(s){s.checkIn=data.checkIn||null;s.checkOut=data.checkOut||null;s.status=data.status||"ยังไม่เข้างาน";}
-    });
-    render();
-  });
-  // ฟังสถานะงาน
-  fbListen(`tasks/${today}`,(tasks)=>{
-    if(!tasks)return;
-    Object.entries(tasks).forEach(([id,data])=>{
-      const upd=(arr)=>arr.map(t=>t.id===id?{...t,...data}:t);
-      TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
-      BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
-    });
-    render();
-  });
-  // ฟัง holiday mode
-  fbListen(`settings/holidayMode`,(val)=>{
-    if(val!==null&&ST.holidayMode!==val){ST.holidayMode=val;render();}
-  });
-}
-
-const GAS="https://script.google.com/macros/s/AKfycbygMIO5u6nH_Jx7afdvWOTLifygMKrpTSGtxYF6hhR0pwG6rSH7yX-Uurw-86-3LmE/exec";
-const CLD="dfdghi7tj";
-const PRESET="mori_staff";
-
+// ══════════════════════════════════════════════
+//  STATIC DATA
+// ══════════════════════════════════════════════
 const USERS=[
-  {id:1,name:"Owner",role:"owner",avatar:"OW",pin:"4543",wage:0},
-  {id:2,name:"เลขาดูแลระบบ",role:"manager",avatar:"ลข",pin:"8856",wage:0},
-  {id:3,name:"น้องเนย บาริสต้า",role:"staff",avatar:"นย",pin:"3333",wage:900},
+  {id:1,name:"Owner",            role:"owner",  avatar:"OW",pin:"4543",wage:0},
+  {id:2,name:"เลขาดูแลระบบ",    role:"manager",avatar:"ลข",pin:"8856",wage:0},
+  {id:3,name:"น้องเนย บาริสต้า", role:"staff",  avatar:"นย",pin:"3333",wage:900},
   {id:4,name:"น้องต้า พี่เลี้ยงแมว",role:"staff",avatar:"ตา",pin:"4444",wage:700},
 ];
 
 let STAFF=[
-  {id:1,name:"Owner",role:"owner",avatar:"OW",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:100,level:"Gold"},
-  {id:2,name:"เลขาดูแลระบบ",role:"manager",avatar:"ลข",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:100,level:"Gold"},
-  {id:3,name:"น้องเนย บาริสต้า",role:"staff",avatar:"นย",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:0,level:"Silver"},
-  {id:4,name:"น้องต้า พี่เลี้ยงแมว",role:"staff",avatar:"ตา",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:0,level:"Silver"},
+  {id:1,name:"Owner",            role:"owner",  avatar:"OW",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:100,level:"Gold"},
+  {id:2,name:"เลขาดูแลระบบ",    role:"manager",avatar:"ลข",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:100,level:"Gold"},
+  {id:3,name:"น้องเนย บาริสต้า", role:"staff",  avatar:"นย",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:0,  level:"Silver"},
+  {id:4,name:"น้องต้า พี่เลี้ยงแมว",role:"staff",avatar:"ตา",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:0,  level:"Silver"},
 ];
 
 const ROUNDS=[
@@ -179,66 +132,185 @@ const BATHROOM_NAMES=["ประตูห้องน้ำทุกบาน","
 const KITCHEN_NAMES=["กวาดพื้น + ถูพื้น","ดูดฝุ่น + เก็บขนแมว","เช็ดโต๊ะทั้งหมด","เช็คและทำความสะอาดเครื่องใช้ไฟฟ้า","จัดของ/เคลียร์ขยะ","เตรียมวัตถุดิบอาหาร","เช็คสต็อกวัตถุดิบ"];
 const CATS=["โซจู","ดลใจ","วากิว","คุมะ","กอมเบ","โยชิ","ยูตะ","ชาไทย","บานอฟฟี่","น้ำตาล","นมสด","ทรัฟเฟิล","เลดี้","สโนว์","ชาแนล","ลาล่า","แพรพรรณ","คิวปิด","มัสตาร์ด","จินดี้","มะขาม","เจนนี่","นูเทลล่า","ข้าวพอง","เกรเทล","แซลลี่","รามิ","โรร่า","แคปหมู","อ่องปู","แพรไหม","แพรวา","มากิ","นิกิ","อากิ","โคลอี้","โมอา","โนอา","จินอา","ลีอา","ปีใหม่","คริสมาสต์"];
 const KITTENS=[{id:"k1",name:"ลูกแมว (ขาวแต้มเทา)",emoji:"🐱"},{id:"k2",name:"ลูกแมว (จมูกดำ)",emoji:"🐾"},{id:"k3",name:"ลูกแมว (ลายเสือ)",emoji:"🐯"}];
-const SPECIAL=["โยชิ","ดลใจ","กอมเบ","โซจู","ลาล่า","ข้าวพอง","ปีใหม่","คริสมาสต์"];
 
-const now=new Date();
-const tStr=now.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"});
-const dStr=now.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
-const todayISO=now.toISOString().slice(0,10);
+// ✅ เพิ่ม ชาแนล และ มัสตาร์ด
+const SPECIAL=["โยชิ","ดลใจ","กอมเบ","โซจู","ลาล่า","ข้าวพอง","ปีใหม่","คริสมาสต์","ชาแนล","มัสตาร์ด"];
 
-function mkTask(prefix,names,round,deadline){
+// ══════════════════════════════════════════════
+//  DATE / TIME
+// ══════════════════════════════════════════════
+const now      = new Date();
+const tStr     = now.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"});
+const dStr     = now.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+const todayISO = now.toISOString().slice(0,10);
+
+// ══════════════════════════════════════════════
+//  TASK FACTORIES
+// ══════════════════════════════════════════════
+function mkTask(prefix, names, round, deadline, category){
   return names.map((n,i)=>({
-    id:`${prefix}${i}`,name:n,round,deadline,
-    assignee:STAFF[2+(i%2)]?.name||"",
-    status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null
+    id:`${prefix}${i}`, name:n, round, deadline, category,
+    assignee: STAFF[2+(i%2)]?.name||"",
+    status:"ยังไม่ทำ", photoUrl:null, note:"", submittedAt:null
   }));
 }
 
-let TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({
-  id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,
-  assignee:STAFF[2+(ti%2)]?.name||"",
-  status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null
+let TASKS         = ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({
+  id:`r${ri}-${ti}`, round:r.time, name:t, deadline:r.time, category:"round",
+  assignee: STAFF[2+(ti%2)]?.name||"",
+  status:"ยังไม่ทำ", photoUrl:null, note:"", submittedAt:null
 })));
-let DAILY_TASKS=mkTask("d",DAILY_NAMES,"รายวัน","ก่อนเลิกงาน");
-let BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));
-let BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน");
-let KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน");
+let DAILY_TASKS   = mkTask("d",  DAILY_NAMES,   "รายวัน",  "ก่อนเลิกงาน","daily");
+let BARISTA_TASKS = BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));
+let BATHROOM_TASKS= mkTask("bt", BATHROOM_NAMES,"ห้องน้ำ", "ก่อนเลิกงาน","bathroom");
+let KITCHEN_TASKS = mkTask("kt", KITCHEN_NAMES, "ห้องครัว","ก่อนเลิกงาน","kitchen");
 
-function allTasks(){return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS];}
+function allTasks(){ return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS]; }
+function updateAllArr(id, patch){
+  const upd = arr => arr.map(t => t.id===id ? {...t,...patch} : t);
+  TASKS=upd(TASKS); DAILY_TASKS=upd(DAILY_TASKS); BARISTA_TASKS=upd(BARISTA_TASKS);
+  BATHROOM_TASKS=upd(BATHROOM_TASKS); KITCHEN_TASKS=upd(KITCHEN_TASKS);
+}
 
+// ══════════════════════════════════════════════
+//  APP STATE
+// ══════════════════════════════════════════════
 const ST={
-  tab:"today",taskTab:"round",reportTab:"daily",
-  loggedIn:false,loginUser:null,pinInput:"",loginError:"",
-  syncing:false,holidayMode:false,
-  checkInPhoto:null,checkOutPhoto:null,
-  taskModal:null,taskPhotos:{},taskAI:null,taskAnalyzing:false,
+  tab:"today", taskTab:"round", reportTab:"daily",
+  loggedIn:false, loginUser:null, pinInput:"", loginError:"",
+  syncing:false, holidayMode:false, fbConnected:false,
+  checkInPhoto:null, checkOutPhoto:null,
+  taskModal:null, taskPhotos:{}, taskAI:null, taskAnalyzing:false,
   notifs:[{id:1,msg:"ระบบพร้อมใช้งานแล้วค่ะ 🐱",time:tStr,read:false,urgent:false}],
-  showNotif:false,leaveModal:false,
-  catModal:null,catLogs:{},
-  kittenModal:null,kittenLogs:{k1:[],k2:[],k3:[]},
+  showNotif:false, leaveModal:false,
+  catModal:null, catLogs:{},
+  kittenModal:null, kittenLogs:{k1:[],k2:[],k3:[]},
   kittenForm:{time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:"",photoPreview:null},
-  settings:{lateFine:100,noTaskFine:50,overtimeFine:50,overtimeStart:"02:15"},
+  settings:{lateFine:100,noTaskFine:50,overtimeFine:50},
 };
 
+// ══════════════════════════════════════════════
+//  LOAD STATE FROM FIREBASE (ทุกครั้งที่เปิดแอป)
+// ══════════════════════════════════════════════
+async function loadState(){
+  try {
+    // โหลดข้อมูลการเข้างานวันนี้
+    const att = await fbGet(`attendance/${todayISO}`);
+    if(att){
+      Object.entries(att).forEach(([name,data])=>{
+        const s = STAFF.find(x=>x.name===name);
+        if(s){
+          s.checkIn  = data.checkIn  || null;
+          s.checkOut = data.checkOut || null;
+          s.status   = data.status   || "ยังไม่เข้างาน";
+        }
+      });
+    }
+
+    // โหลดข้อมูลงานวันนี้
+    const tasks = await fbGet(`tasks/${todayISO}`);
+    if(tasks){
+      Object.entries(tasks).forEach(([id,data])=>{
+        updateAllArr(id, data);
+      });
+    }
+
+    // โหลด holiday mode
+    const hol = await fbGet(`settings/holidayMode`);
+    if(hol !== null) ST.holidayMode = hol;
+
+    ST.fbConnected = true;
+  } catch(e){
+    console.error("loadState error:", e);
+    ST.fbConnected = false;
+  }
+  render();           // render หลังโหลดเสร็จ
+  startListening();   // เริ่ม realtime listener
+}
+
+// ══════════════════════════════════════════════
+//  REALTIME LISTENERS
+// ══════════════════════════════════════════════
+function startListening(){
+  // ── Attendance ──
+  fbListen(`attendance/${todayISO}`, (att)=>{
+    if(!att) return;
+    Object.entries(att).forEach(([name,data])=>{
+      const s = STAFF.find(x=>x.name===name);
+      if(s){
+        s.checkIn  = data.checkIn  || null;
+        s.checkOut = data.checkOut || null;
+        s.status   = data.status   || "ยังไม่เข้างาน";
+      }
+    });
+    ST.fbConnected = true;
+    render();
+  });
+
+  // ── Tasks ──
+  fbListen(`tasks/${todayISO}`, (tasks)=>{
+    if(!tasks) return;
+    Object.entries(tasks).forEach(([id,data])=>{
+      updateAllArr(id, data);
+    });
+    render();
+  });
+
+  // ── Holiday mode ──
+  fbListen(`settings/holidayMode`, (val)=>{
+    if(val !== null && ST.holidayMode !== val){
+      ST.holidayMode = val;
+      render();
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════
 function mockAI(){
   const s=[92,87,76,88,95,71,83][Math.floor(Math.random()*7)];
   const n=["ดูสะอาดเรียบร้อยดี","พบคราบเล็กน้อย แนะนำเช็ดซ้ำ","ภาพมืดเกินไป ถ่ายใหม่","รูปชัดเจน ผ่านเกณฑ์","พบขนแมว แนะนำเช็ดเพิ่ม"][Math.floor(Math.random()*5)];
   return{score:s,status:s>=80?"ผ่าน":s>=65?"ควรตรวจซ้ำ":"ไม่ผ่าน",note:n};
 }
-async function gas(a,d){try{await fetch(GAS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:a,data:d})});}catch(e){}}
-async function upload(file){
-  const fd=new FormData();fd.append("file",file);fd.append("upload_preset",PRESET);fd.append("folder","mori-staff-check");
-  try{const r=await fetch(`https://api.cloudinary.com/v1_1/${CLD}/image/upload`,{method:"POST",body:fd});const j=await r.json();return j.secure_url||null;}catch(e){return null;}
+async function gas(a,d){
+  try{ await fetch(GAS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:a,data:d})}); }
+  catch(e){}
 }
-function b64toFile(d,n){const a=d.split(","),m=a[0].match(/:(.*?);/)[1],s=atob(a[1]);let l=s.length;const u=new Uint8Array(l);while(l--){u[l]=s.charCodeAt(l);}return new File([u],n,{type:m});}
-function bc(st){if(st==="ผ่าน"||st==="เข้างานแล้ว")return"background:#EAF3DE;color:#639922";if(st==="รอตรวจ"||st==="ส่งแล้ว")return"background:#FAEEDA;color:#BA7517";if(st==="ตีกลับ"||st==="เลยเวลา"||st==="ลืมงาน")return"background:#FCEBEB;color:#A32D2D";if(st==="มาสาย")return"background:#FAECE7;color:#D85A30";if(st==="เลิกงานแล้ว")return"background:#E6F1FB;color:#185FA5";return"background:#F1EFE8;color:#888780";}
-function addN(msg,urgent){ST.notifs.unshift({id:Date.now(),msg,time:tStr,read:false,urgent:!!urgent});}
+async function upload(file){
+  const fd=new FormData();
+  fd.append("file",file); fd.append("upload_preset",PRESET); fd.append("folder","mori-staff-check");
+  try{
+    const r=await fetch(`https://api.cloudinary.com/v1_1/${CLD}/image/upload`,{method:"POST",body:fd});
+    const j=await r.json(); return j.secure_url||null;
+  }catch(e){return null;}
+}
+function b64toFile(d,n){
+  const a=d.split(","),m=a[0].match(/:(.*?);/)[1],s=atob(a[1]);
+  let l=s.length; const u=new Uint8Array(l);
+  while(l--){u[l]=s.charCodeAt(l);}
+  return new File([u],n,{type:m});
+}
+function bc(st){
+  if(st==="ผ่าน"||st==="เข้างานแล้ว")  return"background:#EAF3DE;color:#639922";
+  if(st==="รอตรวจ"||st==="ส่งแล้ว")    return"background:#FAEEDA;color:#BA7517";
+  if(st==="ตีกลับ"||st==="เลยเวลา"||st==="ลืมงาน") return"background:#FCEBEB;color:#A32D2D";
+  if(st==="มาสาย")                       return"background:#FAECE7;color:#D85A30";
+  if(st==="เลิกงานแล้ว")                return"background:#E6F1FB;color:#185FA5";
+  return"background:#F1EFE8;color:#888780";
+}
+function addN(msg,urgent){ ST.notifs.unshift({id:Date.now(),msg,time:tStr,read:false,urgent:!!urgent}); }
 
-function render(){document.getElementById("app").innerHTML=ST.loggedIn?main():loginPage();}
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function render(){ document.getElementById("app").innerHTML = ST.loggedIn ? main() : loginPage(); }
 
-// ── LOGIN ──
+// ──────────────────────────────────────────────
+//  LOGIN PAGE
+// ──────────────────────────────────────────────
 function loginPage(){
-  if(!ST.loginUser)return`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  if(!ST.loginUser) return`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
     <div style="font-size:40px;margin-bottom:8px">🐱</div>
     <div style="font-size:22px;font-weight:500;color:#993556;margin-bottom:28px">Mori Staff Check</div>
     ${USERS.map(u=>`<button onclick="selU(${u.id})" style="width:100%;max-width:360px;background:#fff;border:.5px solid #E8E3DA;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;font-family:inherit">
@@ -248,6 +320,7 @@ function loginPage(){
     </button>`).join("")}
     <div style="font-size:11px;color:#5F5E5A;margin-top:16px">กรุณาติดต่อผู้ดูแลระบบเพื่อขอรหัสผ่าน</div>
   </div>`;
+
   const u=ST.loginUser;
   return`<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
     <div class="av" style="width:64px;height:64px;font-size:24px;margin-bottom:12px">${u.avatar}</div>
@@ -260,13 +333,15 @@ function loginPage(){
   </div>`;
 }
 
-// ── MAIN ──
+// ──────────────────────────────────────────────
+//  MAIN APP
+// ──────────────────────────────────────────────
 function main(){
   const me=ST.loginUser;
   const my=STAFF.find(s=>s.id===me.id)||{};
 
-  // Holiday block สำหรับพนักงาน
-  if(ST.holidayMode&&me.role==="staff"){
+  // Holiday block for staff
+  if(ST.holidayMode && me.role==="staff"){
     return`<div class="hdr"><div><h1 style="font-size:16px;font-weight:500;color:#993556">🐱 Mori Staff Check</h1></div>
       <div style="display:flex;align-items:center;gap:6px;background:#FBEAF0;border-radius:20px;padding:5px 12px;cursor:pointer" onclick="logout()">
         <div class="av" style="width:22px;height:22px;font-size:9px">${me.avatar}</div>
@@ -283,17 +358,27 @@ function main(){
     </div>`;
   }
 
-  const unread=ST.notifs.filter(n=>!n.read).length;
-  const pendingT=TASKS.filter(t=>t.status==="รอตรวจ");
-  const doneT=TASKS.filter(t=>t.status==="ผ่าน");
-  const overdueT=TASKS.filter(t=>t.status==="เลยเวลา"||t.status==="ลืมงาน");
+  const unread    = ST.notifs.filter(n=>!n.read).length;
+  const pendingT  = allTasks().filter(t=>t.status==="รอตรวจ");
+  const doneT     = TASKS.filter(t=>t.status==="ผ่าน");
+  const overdueT  = TASKS.filter(t=>t.status==="เลยเวลา"||t.status==="ลืมงาน");
 
-  // Header
+  // ── Header ──
+  const fbBadge = ST.fbConnected
+    ? `<span style="font-size:10px;color:#639922"><span class="online-dot"></span>Realtime</span>`
+    : `<span style="font-size:10px;color:#888780">⏳ กำลังเชื่อมต่อ</span>`;
+
   const hdr=`<div class="hdr">
-    <div><h1 style="font-size:16px;font-weight:500;color:#993556">🐱 Mori Staff Check</h1><small style="font-size:11px;color:#5F5E5A">${dStr}</small></div>
+    <div>
+      <h1 style="font-size:16px;font-weight:500;color:#993556">🐱 Mori Staff Check</h1>
+      <div style="display:flex;align-items:center;gap:6px">
+        <small style="font-size:11px;color:#5F5E5A">${dStr}</small>
+        ${fbBadge}
+      </div>
+    </div>
     <div style="display:flex;gap:8px;align-items:center">
       ${ST.syncing?`<span class="sync">⏳</span>`:""}
-      ${me.role==="owner"||me.role==="manager"?`<button onclick="toggleHol()" style="background:${ST.holidayMode?"#EAF3DE":"#FAEEDA"};color:${ST.holidayMode?"#639922":"#BA7517"};border:none;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">${ST.holidayMode?"✓ วันหยุด":"🏖️ ตั้งวันหยุด"}</button>`:""}
+      ${me.role==="owner"||me.role==="manager"?`<button onclick="toggleHol()" style="background:${ST.holidayMode?"#EAF3DE":"#FAEEDA"};color:${ST.holidayMode?"#639922":"#BA7517"};border:none;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">${ST.holidayMode?"✓ วันหยุด":"🏖️ วันหยุด"}</button>`:""}
       <div style="position:relative;cursor:pointer" onclick="ST.showNotif=!ST.showNotif;render()">
         <span style="font-size:20px">🔔</span>
         ${unread>0?`<span style="position:absolute;top:-4px;right:-4px;background:#A32D2D;color:#fff;font-size:9px;border-radius:10px;padding:1px 4px">${unread}</span>`:""}
@@ -305,7 +390,7 @@ function main(){
     </div>
   </div>`;
 
-  const notifPanel=ST.showNotif?`<div style="background:#fff;border-bottom:.5px solid #E8E3DA;max-height:200px;overflow-y:auto">
+  const notifPanel = ST.showNotif?`<div style="background:#fff;border-bottom:.5px solid #E8E3DA;max-height:200px;overflow-y:auto">
     ${ST.notifs.map(n=>`<div style="padding:10px 14px;border-bottom:.5px solid #E8E3DA;background:${n.read?"#fff":"#FBEAF0"};cursor:pointer" onclick="ST.notifs=ST.notifs.map(x=>x.id===${n.id}?{...x,read:true}:x);render()">
       <div style="font-size:12px;color:${n.urgent?"#A32D2D":"#2C2C2A"}">${n.urgent?"🔴":"🔔"} ${n.msg}</div>
       <div style="font-size:10px;color:#5F5E5A">${n.time}</div>
@@ -318,11 +403,11 @@ function main(){
   let content="";
   let modal="";
 
-  // ── TODAY ──
+  // ════════ TODAY ════════
   if(ST.tab==="today"){
-    const chk=STAFF.filter(s=>s.checkIn&&!s.checkOut).length;
-    const notIn=STAFF.filter(s=>!s.checkIn).length;
-    const late=STAFF.filter(s=>s.status==="มาสาย").length;
+    const chk   = STAFF.filter(s=>s.checkIn&&!s.checkOut).length;
+    const notIn = STAFF.filter(s=>!s.checkIn).length;
+    const late  = STAFF.filter(s=>s.status==="มาสาย").length;
     content=`<div class="pad">
       <div class="g2">
         <div class="sb" style="background:#EAF3DE"><div style="font-size:22px;font-weight:500;color:#639922">${chk}</div><div style="font-size:11px;color:#639922">เข้างานแล้ว</div></div>
@@ -333,14 +418,15 @@ function main(){
       <div class="sec">สถานะพนักงาน</div>
       ${STAFF.map(s=>`<div class="card" style="display:flex;align-items:center;gap:10px">
         <div class="av" style="width:36px;height:36px;font-size:12px">${s.avatar}</div>
-        <div style="flex:1"><div style="font-weight:500;font-size:13px">${s.name}</div><div style="font-size:11px;color:#5F5E5A">${s.checkIn?`เข้า ${s.checkIn}${s.checkOut?` · เลิก ${s.checkOut}`:""}` :"ยังไม่เช็คอิน"}</div></div>
+        <div style="flex:1"><div style="font-weight:500;font-size:13px">${s.name}</div>
+        <div style="font-size:11px;color:#5F5E5A">${s.checkIn?`เข้า ${s.checkIn}${s.checkOut?` · เลิก ${s.checkOut}`:""}` :"ยังไม่เช็คอิน"}</div></div>
         <span class="badge" style="${bc(s.status)}">${s.status}</span>
       </div>`).join("")}
       ${(me.role==="owner"||me.role==="manager")&&pendingT.length>0?`
         <div class="sec">งานรอตรวจ (${pendingT.length})</div>
         ${pendingT.slice(0,5).map(t=>`<div class="card" onclick="openT('${t.id}')" style="cursor:pointer">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><div style="font-size:12px;font-weight:500">${t.name}</div><div style="font-size:10px;color:#5F5E5A">${t.assignee} · ${t.round}</div></div>
+            <div><div style="font-size:12px;font-weight:500">${t.name}</div><div style="font-size:10px;color:#5F5E5A">${t.assignee} · ${t.round||t.category}</div></div>
             <div style="display:flex;gap:6px">
               <button onclick="event.stopPropagation();appT('${t.id}')" class="badge" style="${bc("ผ่าน")};border:none;cursor:pointer;padding:5px 10px">ผ่าน</button>
               <button onclick="event.stopPropagation();rejT('${t.id}')" class="badge" style="${bc("ตีกลับ")};border:none;cursor:pointer;padding:5px 10px">ตีกลับ</button>
@@ -354,13 +440,13 @@ function main(){
           <div><div style="font-size:18px;font-weight:500;color:#639922">${doneT.length}</div><div style="font-size:10px;color:#5F5E5A">ผ่านแล้ว</div></div>
           <div><div style="font-size:18px;font-weight:500;color:#A32D2D">${overdueT.length}</div><div style="font-size:10px;color:#5F5E5A">เลยเวลา</div></div>
         </div>
-        <div class="pb2"><div class="pf" style="width:${Math.round(doneT.length/TASKS.length*100)}%;background:#639922"></div></div>
-        <div style="font-size:10px;color:#5F5E5A">ความคืบหน้า ${Math.round(doneT.length/TASKS.length*100)}%</div>
+        <div class="pb2"><div class="pf" style="width:${TASKS.length?Math.round(doneT.length/TASKS.length*100):0}%;background:#639922"></div></div>
+        <div style="font-size:10px;color:#5F5E5A">ความคืบหน้า ${TASKS.length?Math.round(doneT.length/TASKS.length*100):0}%</div>
       </div>
     </div>`;
   }
 
-  // ── CHECKIN ──
+  // ════════ CHECKIN ════════
   else if(ST.tab==="checkin"){
     content=`<div class="pad">
       <div class="card" style="text-align:center">
@@ -397,18 +483,20 @@ function main(){
       <div class="sec">สถานะพนักงานทั้งหมด</div>
       ${STAFF.map(s=>`<div class="card" style="display:flex;align-items:center;gap:10px">
         <div class="av" style="width:36px;height:36px;font-size:12px">${s.avatar}</div>
-        <div style="flex:1"><div style="font-size:13px;font-weight:500">${s.name}</div><div style="font-size:11px;color:#5F5E5A">${s.checkIn?`เข้า ${s.checkIn}${s.checkOut?` · เลิก ${s.checkOut}`:""}` :"ยังไม่เช็คอิน"}</div></div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:500">${s.name}</div>
+        <div style="font-size:11px;color:#5F5E5A">${s.checkIn?`เข้า ${s.checkIn}${s.checkOut?` · เลิก ${s.checkOut}`:""}` :"ยังไม่เช็คอิน"}</div></div>
         <span class="badge" style="${bc(s.status)}">${s.status}</span>
       </div>`).join("")}
       <button class="btn" style="background:#FBEAF0;color:#993556;border:.5px solid #F4C0D1;margin-top:4px" onclick="ST.leaveModal=true;render()">+ ยื่นคำขอลา / แจ้งเหตุ</button>
     </div>`;
   }
 
-  // ── TASKS ──
+  // ════════ TASKS ════════
   else if(ST.tab==="tasks"){
-    const tabs=[["round","รอบงาน"],["daily","งานรายวัน"],["barista","บาริสต้า"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"]];
+    const tabs=[["round","รอบงาน"],["daily","รายวัน"],["barista","บาริสต้า"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"]];
     content=`<div class="pad">
       <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${ST.taskTab===k?"active":""}" onclick="ST.taskTab='${k}';render()">${l}</button>`).join("")}</div>
+
       ${ST.taskTab==="round"?ROUNDS.map((r,ri)=>{
         const rt=TASKS.filter(t=>t.round===r.time);
         const dn=rt.filter(t=>["ผ่าน","รอตรวจ","ส่งแล้ว"].includes(t.status)).length;
@@ -422,6 +510,7 @@ function main(){
           </div>`).join("")}
         </div>`;
       }).join(""):""}
+
       ${ST.taskTab==="daily"?`<div class="card">
         ${DAILY_TASKS.map(t=>`<div class="tr" onclick="openT('${t.id}')">
           <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
@@ -429,6 +518,7 @@ function main(){
           <span class="badge" style="${bc(t.status)}">${t.status}</span></div>
         </div>`).join("")}
       </div>`:""}
+
       ${ST.taskTab==="barista"?`<div class="card">
         ${BARISTA_TASKS.map(t=>`<div class="tr" onclick="openT('${t.id}')">
           <div><div style="font-size:12px">${t.name}</div><div style="font-size:10px;color:#5F5E5A">${t.time}${t.submittedAt?` · ส่ง ${t.submittedAt}`:""}</div></div>
@@ -436,6 +526,7 @@ function main(){
           <span class="badge" style="${bc(t.status)}">${t.status}</span></div>
         </div>`).join("")}
       </div>`:""}
+
       ${ST.taskTab==="bathroom"?`<div class="sec">กดรายการเพื่อถ่ายรูปส่ง</div>
         ${BATHROOM_TASKS.map(t=>`<div class="card" style="cursor:pointer" onclick="openT('${t.id}')">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -444,6 +535,7 @@ function main(){
             <span class="badge" style="${bc(t.status)}">${t.status}</span></div>
           </div>
         </div>`).join("")}`:""}
+
       ${ST.taskTab==="kitchen"?`<div class="sec">กดรายการเพื่อถ่ายรูปส่ง</div>
         ${KITCHEN_TASKS.map(t=>`<div class="card" style="cursor:pointer" onclick="openT('${t.id}')">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -455,7 +547,7 @@ function main(){
     </div>`;
   }
 
-  // ── CATS ──
+  // ════════ CATS ════════
   else if(ST.tab==="cats"){
     content=`<div class="pad">
       <div class="card" style="background:#FBEAF0">
@@ -480,17 +572,17 @@ function main(){
         ${CATS.map((c,i)=>{const l=ST.catLogs[c];return`<div onclick="openCat('${c}')" style="background:${l?.abnormal?"#FCEBEB":"#fff"};border:.5px solid ${l?.abnormal?"#A32D2D":"#E8E3DA"};border-radius:10px;padding:8px 10px;cursor:pointer">
           <div style="display:flex;justify-content:space-between"><span style="font-size:12px">🐱 ${c}</span><span style="font-size:10px;color:#5F5E5A">#${i+1}</span></div>
           ${l?`<div style="font-size:10px;color:${l.abnormal?"#A32D2D":"#639922"};margin-top:2px">${l.abnormal?"⚠️ พบความผิดปกติ":"✓ เช็คแล้ว"}</div>`:""}
-          ${SPECIAL.includes(c)?`<div style="font-size:9px;color:#993556">★ งานพิเศษ</div>`:""}
+          ${SPECIAL.includes(c)?`<div style="font-size:9px;color:#993556">★ เช็ดตาทุกวัน</div>`:""}
         </div>`;}).join("")}
       </div>
     </div>`;
   }
 
-  // ── REPORT ──
+  // ════════ REPORT ════════
   else if(ST.tab==="report"){
-    const tasksDone=TASKS.filter(t=>t.status==="ผ่าน").length;
-    const tasksRej=TASKS.filter(t=>t.status==="ตีกลับ").length;
-    const tasksMiss=TASKS.filter(t=>t.status==="เลยเวลา"||t.status==="ลืมงาน").length;
+    const tasksDone=allTasks().filter(t=>t.status==="ผ่าน").length;
+    const tasksRej =allTasks().filter(t=>t.status==="ตีกลับ").length;
+    const tasksMiss=allTasks().filter(t=>t.status==="เลยเวลา"||t.status==="ลืมงาน").length;
     content=`<div class="pad">
       <div class="tabs">
         ${[["daily","รายวัน"],["week","รายสัปดาห์"],["month","รายเดือน"],["score","คะแนน"]].map(([k,l])=>`<button class="tab ${ST.reportTab===k?"active":""}" onclick="ST.reportTab='${k}';render()">${l}</button>`).join("")}
@@ -504,17 +596,24 @@ function main(){
           <div class="sb" style="background:#FCEBEB"><div style="font-size:18px;font-weight:500;color:#A32D2D">${tasksRej+tasksMiss}</div><div style="font-size:10px;color:#A32D2D">งานมีปัญหา</div></div>
         </div>
         ${STAFF.filter(s=>s.role==="staff").map(s=>{
-          const u=USERS.find(x=>x.id===s.id);const w=u?.wage||0;const fine=s.status==="มาสาย"?ST.settings.lateFine:0;const net=s.checkIn?Math.max(0,w-fine):0;
-          return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div><div style="flex:1;font-weight:500;font-size:13px">${s.name}</div><span style="font-size:11px;color:#5F5E5A">฿${w}/วัน</span></div>
-          <div style="font-size:11px">${[["วันทำงาน",s.checkIn?"1 วัน":"0 วัน",""],["ค่าแรง",`฿${s.checkIn?w:0}`,""],["ค่าปรับ",fine?`-฿${fine}`:"฿0",fine?"color:#A32D2D":""]].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#5F5E5A">${l}</span><span style="${c}">${v}</span></div>`).join("")}
+          const u=USERS.find(x=>x.id===s.id); const w=u?.wage||0;
+          const fine=s.status==="มาสาย"?ST.settings.lateFine:0;
+          const net=s.checkIn?Math.max(0,w-fine):0;
+          return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div>
+            <div style="flex:1;font-weight:500;font-size:13px">${s.name}</div>
+            <span style="font-size:11px;color:#5F5E5A">฿${w}/วัน</span></div>
+          <div style="font-size:11px">${[["เข้างาน",s.checkIn?s.checkIn:"ไม่มา",""],["เลิกงาน",s.checkOut?s.checkOut:"—",""],["ค่าปรับ",fine?`-฿${fine}`:"฿0",fine?"color:#A32D2D":""]].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#5F5E5A">${l}</span><span style="${c}">${v}</span></div>`).join("")}
           <div style="display:flex;justify-content:space-between;border-top:.5px solid #E8E3DA;padding-top:4px;margin-top:2px"><span style="font-weight:500">ยอดสุทธิ</span><span style="font-weight:500;color:#639922">฿${net}</span></div></div></div>`;
         }).join("")}
         <button onclick="exportCSV()" class="btn" style="background:#F1EFE8;color:#888780">📥 Export CSV</button>`:""}
       ${ST.reportTab==="week"?`
         <div class="sec">สรุปรายสัปดาห์</div>
         ${STAFF.filter(s=>s.role==="staff").map(s=>{
-          const u=USERS.find(x=>x.id===s.id);const w=u?.wage||0;const days=s.checkIn?1:0;
-          return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div><div style="flex:1;font-weight:500;font-size:13px">${s.name}</div></div>
+          const u=USERS.find(x=>x.id===s.id); const w=u?.wage||0; const days=s.checkIn?1:0;
+          return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div>
+            <div style="flex:1;font-weight:500;font-size:13px">${s.name}</div></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
             <div style="background:#FAF7F2;border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:500">${days}</div><div style="font-size:9px;color:#5F5E5A">วันทำงาน</div></div>
             <div style="background:#FAF7F2;border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:500;color:#639922">฿${days*w}</div><div style="font-size:9px;color:#5F5E5A">ค่าแรง</div></div>
@@ -524,8 +623,12 @@ function main(){
       ${ST.reportTab==="month"?`
         <div class="sec">สรุปรายเดือน — ${now.toLocaleDateString("th-TH",{month:"long",year:"numeric"})}</div>
         ${STAFF.filter(s=>s.role==="staff").map(s=>{
-          const u=USERS.find(x=>x.id===s.id);const w=u?.wage||0;const days=s.checkIn?1:0;const fine=s.status==="มาสาย"?ST.settings.lateFine:0;const net=Math.max(0,days*w-fine);
-          return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div><div style="flex:1;font-weight:500;font-size:13px">${s.name}</div><span style="font-size:11px;color:#5F5E5A">฿${w}/วัน</span></div>
+          const u=USERS.find(x=>x.id===s.id); const w=u?.wage||0;
+          const days=s.checkIn?1:0; const fine=s.status==="มาสาย"?ST.settings.lateFine:0;
+          const net=Math.max(0,days*w-fine);
+          return`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div>
+            <div style="flex:1;font-weight:500;font-size:13px">${s.name}</div><span style="font-size:11px;color:#5F5E5A">฿${w}/วัน</span></div>
           <div style="font-size:11px">${[["วันทำงาน",`${days} วัน`,""],["ค่าแรงรวม",`฿${days*w}`,""],["ค่าปรับมาสาย",fine?`-฿${fine}`:"฿0",fine?"color:#A32D2D":""]].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:.5px solid #F1EFE8"><span style="color:#5F5E5A">${l}</span><span style="${c}">${v}</span></div>`).join("")}
           <div style="display:flex;justify-content:space-between;padding-top:4px;margin-top:2px"><span style="font-weight:500">ยอดสุทธิ</span><span style="font-weight:500;color:#639922;font-size:14px">฿${net}</span></div></div></div>`;
         }).join("")}
@@ -533,10 +636,10 @@ function main(){
       ${ST.reportTab==="score"?`
         <div class="sec">คะแนนพนักงาน</div>
         ${STAFF.filter(s=>s.role==="staff").sort((a,b)=>b.score-a.score).map((s,i)=>{
-          const lc=s.level==="Gold"?"#BA7517":s.level==="Silver"?"#888780":s.level==="Bronze"?"#993C1D":"#A32D2D";
-          const lb=s.level==="Gold"?"#FAEEDA":s.level==="Silver"?"#D3D1C7":s.level==="Bronze"?"#F5C4B3":"#FCEBEB";
-          const td=TASKS.filter(t=>t.assignee===s.name&&t.status==="ผ่าน").length;
-          const tr2=TASKS.filter(t=>t.assignee===s.name&&t.status==="ตีกลับ").length;
+          const lc=s.level==="Gold"?"#BA7517":s.level==="Silver"?"#888780":"#993C1D";
+          const lb=s.level==="Gold"?"#FAEEDA":s.level==="Silver"?"#D3D1C7":"#F5C4B3";
+          const td=allTasks().filter(t=>t.assignee===s.name&&t.status==="ผ่าน").length;
+          const tr2=allTasks().filter(t=>t.assignee===s.name&&t.status==="ตีกลับ").length;
           return`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <div style="width:28px;height:28px;border-radius:50%;background:${lb};display:flex;align-items:center;justify-content:center;font-weight:500;font-size:13px;color:${lc}">${i+1}</div>
             <div class="av" style="width:36px;height:36px;font-size:13px">${s.avatar}</div>
@@ -555,11 +658,20 @@ function main(){
     </div>`;
   }
 
-  // ── SETTINGS ──
+  // ════════ SETTINGS ════════
   else if(ST.tab==="settings"){
     const isAdmin=me.role==="owner"||me.role==="manager";
     content=`<div class="pad">
       ${!isAdmin?`<div class="wb">⚠️ การตั้งค่าสงวนสำหรับ Owner/เลขาดูแลระบบ</div>`:""}
+      <div class="sec">สถานะ Firebase Realtime</div>
+      <div class="card" style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">🔥</span>
+        <div>
+          <div style="font-size:13px;font-weight:500">${ST.fbConnected?"เชื่อมต่อแล้ว ✅":"กำลังเชื่อมต่อ..."}</div>
+          <div style="font-size:11px;color:#5F5E5A">${ST.fbConnected?"ทุกคนเห็นข้อมูล Realtime พร้อมกัน":"รอการเชื่อมต่อ Firebase"}</div>
+        </div>
+        ${ST.fbConnected?`<span class="online-dot" style="margin-left:auto"></span>`:""}
+      </div>
       <div class="sec">ค่าปรับ</div>
       <div class="card">${[["ค่าปรับมาสาย (฿)","lateFine"],["ค่าปรับไม่ส่งงาน ต่องาน (฿)","noTaskFine"],["ค่าปรับกลับเกินเวลา ต่อชม. (฿)","overtimeFine"]].map(([l,k])=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid #E8E3DA">
@@ -576,15 +688,11 @@ function main(){
     </div>`;
   }
 
-  // ── MODALS ──
+  // ════════ MODALS ════════
 
   // Task Modal
   if(ST.taskModal){
-    const t=TASKS.find(x=>x.id===ST.taskModal)
-      ||DAILY_TASKS.find(x=>x.id===ST.taskModal)
-      ||BARISTA_TASKS.find(x=>x.id===ST.taskModal)
-      ||BATHROOM_TASKS.find(x=>x.id===ST.taskModal)
-      ||KITCHEN_TASKS.find(x=>x.id===ST.taskModal);
+    const t=allTasks().find(x=>x.id===ST.taskModal);
     if(t){
       const photos=ST.taskPhotos[ST.taskModal]||[];
       const hasPhoto=photos.length>0;
@@ -593,7 +701,7 @@ function main(){
       modal=`<div class="modal" onclick="if(event.target===this)closeM()">
         <div class="mc">
           <div style="font-weight:500;font-size:15px;margin-bottom:2px">${t.name}</div>
-          <div style="font-size:11px;color:#5F5E5A;margin-bottom:8px">${t.assignee} · ${t.round} · ส่งจริง: ${t.submittedAt||"—"}</div>
+          <div style="font-size:11px;color:#5F5E5A;margin-bottom:8px">${t.assignee} · ${t.round||t.category} · ส่งจริง: ${t.submittedAt||"—"}</div>
           <span class="badge" style="${bc(t.status)}">${t.status}</span>
           <div class="wb" style="margin-top:10px">⚠️ กรุณาถ่ายรูปใหม่จากหน้างานเท่านั้น ห้ามใช้รูปเก่า</div>
           ${canS?`
@@ -648,7 +756,7 @@ function main(){
 
   // Cat Modal
   if(ST.catModal){
-    const cat=ST.catModal;const log=ST.catLogs[cat]||{};
+    const cat=ST.catModal; const log=ST.catLogs[cat]||{};
     modal=`<div class="modal" onclick="if(event.target===this){ST.catModal=null;render()}">
       <div class="mc">
         <div style="font-weight:500;font-size:15px;margin-bottom:4px">🐱 ${cat}</div>
@@ -744,34 +852,39 @@ function main(){
   return hdr+notifPanel+content+modal+nav;
 }
 
-// ── ACTIONS ──
-function selU(id){ST.loginUser=USERS.find(u=>u.id===id);ST.pinInput="";ST.loginError="";render();}
-function backSel(){ST.loginUser=null;ST.pinInput="";ST.loginError="";render();}
-function logout(){ST.loggedIn=false;ST.loginUser=null;ST.pinInput="";render();}
+// ══════════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════════
+function selU(id){ ST.loginUser=USERS.find(u=>u.id===id); ST.pinInput=""; ST.loginError=""; render(); }
+function backSel(){ ST.loginUser=null; ST.pinInput=""; ST.loginError=""; render(); }
+function logout(){ ST.loggedIn=false; ST.loginUser=null; ST.pinInput=""; render(); }
+
 function pinP(d){
-  if(d==="⌫"){ST.pinInput=ST.pinInput.slice(0,-1);render();return;}
-  if(d==="")return;
-  ST.pinInput+=d;render();
+  if(d==="⌫"){ ST.pinInput=ST.pinInput.slice(0,-1); render(); return; }
+  if(d==="") return;
+  ST.pinInput+=d; render();
   if(ST.pinInput.length===4){
-    if(ST.pinInput===ST.loginUser.pin){ST.loggedIn=true;ST.loginError="";}
-    else{ST.loginError="PIN ไม่ถูกต้อง";ST.pinInput="";}
+    if(ST.pinInput===ST.loginUser.pin){ ST.loggedIn=true; ST.loginError=""; }
+    else{ ST.loginError="PIN ไม่ถูกต้อง"; ST.pinInput=""; }
     render();
   }
 }
+
 async function toggleHol(){
-  if(!confirm(ST.holidayMode?"ยืนยันเปิดร้านปกติ?":"ยืนยันตั้งเป็นวันหยุดร้าน?"))return;
+  if(!confirm(ST.holidayMode?"ยืนยันเปิดร้านปกติ?":"ยืนยันตั้งเป็นวันหยุดร้าน?")) return;
   ST.holidayMode=!ST.holidayMode;
-  await fbSet(`settings/holidayMode`,ST.holidayMode);
-  addN(ST.holidayMode?"🏖️ ตั้งเป็นวันหยุดร้านแล้ว":"✅ เปิดร้านปกติแล้ว",ST.holidayMode);
+  await fbSet(`settings/holidayMode`, ST.holidayMode);
+  addN(ST.holidayMode?"🏖️ ตั้งเป็นวันหยุดร้านแล้ว":"✅ เปิดร้านปกติแล้ว", ST.holidayMode);
   render();
 }
 
-function handleCI(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{ST.checkInPhoto=e.target.result;render();};r.readAsDataURL(f);}
-function handleCO(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{ST.checkOutPhoto=e.target.result;render();};r.readAsDataURL(f);}
+function handleCI(inp){ const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ST.checkInPhoto=e.target.result;render();}; r.readAsDataURL(f); }
+function handleCO(inp){ const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ST.checkOutPhoto=e.target.result;render();}; r.readAsDataURL(f); }
+
 function handleTP(inp){
-  const files=Array.from(inp.files);if(!files.length)return;
-  if(!ST.taskPhotos[ST.taskModal])ST.taskPhotos[ST.taskModal]=[];
-  ST.taskAnalyzing=true;render();
+  const files=Array.from(inp.files); if(!files.length) return;
+  if(!ST.taskPhotos[ST.taskModal]) ST.taskPhotos[ST.taskModal]=[];
+  ST.taskAnalyzing=true; render();
   let done=0;
   files.forEach(file=>{
     const r=new FileReader();
@@ -781,142 +894,166 @@ function handleTP(inp){
       if(done===files.length){
         const arr=ST.taskPhotos[ST.taskModal];
         Promise.all(arr.filter(p=>!p.url).map(p=>upload(p.file).then(url=>{p.url=url||p.preview;}))).then(()=>{
-          ST.taskAI=mockAI();ST.taskAnalyzing=false;render();
+          ST.taskAI=mockAI(); ST.taskAnalyzing=false; render();
         });
       }
-    };r.readAsDataURL(file);
+    };
+    r.readAsDataURL(file);
   });
 }
 
 async function doCI(){
-  if(!ST.checkInPhoto)return;
+  if(!ST.checkInPhoto) return;
   const me=ST.loginUser;
-  const h=now.getHours(),m=now.getMinutes();
-  const late=h*60+m>11*60+30;
-  const st=late?"มาสาย":"เข้างานแล้ว";
-  const s=STAFF.find(x=>x.id===me.id);
-  if(s){s.checkIn=tStr;s.status=st;}
-  ST.syncing=true;render();
-  const url=await upload(b64toFile(ST.checkInPhoto,"checkin.jpg"));
-  const data={checkIn:tStr,status:st,photoUrl:url||"",name:me.name,role:me.role};
-  // บันทึกลง Firebase (realtime)
-  await fbSet(`attendance/${todayISO}/${me.name}`,data);
-  // บันทึกลง Google Sheets (สำรอง)
-  await gas("checkIn",{date:todayISO,...data,note:document.getElementById("ciNote")?.value||""});
-  ST.syncing=false;ST.checkInPhoto=null;
-  addN(`${me.name} เช็คอิน ${tStr}${late?" (สาย)":""}`,late);
+  const h=now.getHours(), m=now.getMinutes();
+  const late = h*60+m > 11*60+30;
+  const st   = late ? "มาสาย" : "เข้างานแล้ว";
+  const s    = STAFF.find(x=>x.id===me.id);
+  if(s){ s.checkIn=tStr; s.status=st; }
+  ST.syncing=true; render();
+  const url  = await upload(b64toFile(ST.checkInPhoto,"checkin.jpg"));
+  const note = document.getElementById("ciNote")?.value||"";
+  const data = {checkIn:tStr, status:st, photoUrl:url||"", name:me.name, role:me.role};
+  // Firebase realtime
+  await fbSet(`attendance/${todayISO}/${me.name}`, data);
+  // Google Sheets สำรอง
+  await gas("checkIn", {date:todayISO, ...data, checkInTime:tStr, note});
+  ST.syncing=false; ST.checkInPhoto=null;
+  addN(`${me.name} เช็คอิน ${tStr}${late?" (สาย)":""}`, late);
   render();
 }
 
 async function doCO(){
-  if(!ST.checkOutPhoto)return;
+  if(!ST.checkOutPhoto) return;
   const me=ST.loginUser;
   const s=STAFF.find(x=>x.id===me.id);
-  if(s){s.checkOut=tStr;s.status="เลิกงานแล้ว";}
-  ST.syncing=true;render();
-  const url=await upload(b64toFile(ST.checkOutPhoto,"checkout.jpg"));
-  const data={checkOut:tStr,status:"เลิกงานแล้ว",checkOutPhotoUrl:url||""};
-  await fbUpdate(`attendance/${todayISO}/${me.name}`,data);
-  await gas("checkOut",{date:todayISO,name:me.name,checkOutTime:tStr,status:"เลิกงานแล้ว",photoUrl:url||""});
-  ST.syncing=false;ST.checkOutPhoto=null;
+  if(s){ s.checkOut=tStr; s.status="เลิกงานแล้ว"; }
+  ST.syncing=true; render();
+  const url  = await upload(b64toFile(ST.checkOutPhoto,"checkout.jpg"));
+  const data = {checkOut:tStr, status:"เลิกงานแล้ว", checkOutPhotoUrl:url||""};
+  await fbUpdate(`attendance/${todayISO}/${me.name}`, data);
+  await gas("checkOut", {date:todayISO, name:me.name, checkOutTime:tStr, checkOutStatus:"เลิกงานแล้ว", status:"เลิกงานแล้ว", photoUrl:url||""});
+  ST.syncing=false; ST.checkOutPhoto=null;
   addN(`${me.name} เช็คเอาต์ ${tStr}`);
   render();
 }
 
-function openT(id){ST.taskModal=id;ST.taskPhotos[id]=[];ST.taskAI=null;ST.taskAnalyzing=false;render();}
-function closeM(){ST.taskModal=null;ST.leaveModal=false;render();}
+function openT(id){ ST.taskModal=id; ST.taskPhotos[id]=[]; ST.taskAI=null; ST.taskAnalyzing=false; render(); }
+function closeM(){ ST.taskModal=null; ST.leaveModal=false; render(); }
 
 async function subT(id){
   const photos=ST.taskPhotos[id]||[];
-  if(!photos.length)return;
-  const note=document.getElementById("tNote")?.value||"";
-  const ai=ST.taskAI;
-  const photoUrl=photos.map(p=>p.url||p.preview).filter(Boolean).join(",");
-  const taskData={status:"รอตรวจ",submittedAt:tStr,note,photoUrl,aiScore:ai?.score,aiStatus:ai?.status};
-  const upd=(arr)=>arr.map(t=>t.id===id?{...t,...taskData}:t);
-  TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
-  BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
-  const t=allTasks().find(x=>x.id===id);
-  ST.taskModal=null;ST.syncing=true;render();
-  // บันทึกลง Firebase (realtime)
-  await fbSet(`tasks/${todayISO}/${id}`,{...taskData,name:t?.name||id,assignee:t?.assignee||ST.loginUser.name,round:t?.round||"รายวัน"});
-  // บันทึกลง Google Sheets (สำรอง)
-  await gas("submitTask",{date:todayISO,taskName:t?.name||id,assignee:t?.assignee||ST.loginUser.name,round:t?.round||"รายวัน",submittedAt:tStr,status:"รอตรวจ",photoUrl,aiScore:ai?.score,aiStatus:ai?.status,note});
-  ST.syncing=false;addN(`มีงานรอตรวจ: ${t?.name||id}`);render();
+  if(!photos.length) return;
+  const note     = document.getElementById("tNote")?.value||"";
+  const ai       = ST.taskAI;
+  const photoUrl = photos.map(p=>p.url||p.preview).filter(Boolean).join(",");
+  const t        = allTasks().find(x=>x.id===id);
+  const patch    = {status:"รอตรวจ", submittedAt:tStr, note, photoUrl, aiScore:ai?.score, aiStatus:ai?.status};
+  updateAllArr(id, patch);
+  ST.taskModal=null; ST.syncing=true; render();
+
+  // Firebase realtime — ทุกคนเห็นพร้อมกัน
+  await fbSet(`tasks/${todayISO}/${id}`, {
+    ...patch, name:t?.name||id, assignee:t?.assignee||ST.loginUser.name,
+    round:t?.round||"", category:t?.category||"daily"
+  });
+  // Google Sheets — แยกชีตตาม category
+  await gas("submitTask", {
+    date:todayISO, taskName:t?.name||id, assignee:t?.assignee||ST.loginUser.name,
+    round:t?.round||"", category:t?.category||"daily",
+    time:t?.time||"", deadline:t?.deadline||"",
+    submittedAt:tStr, status:"รอตรวจ", photoUrl,
+    aiScore:ai?.score, aiStatus:ai?.status, note
+  });
+  ST.syncing=false;
+  addN(`มีงานรอตรวจ: ${t?.name||id}`);
+  render();
 }
 
 async function appT(id){
-  const upd=(arr)=>arr.map(t=>t.id===id?{...t,status:"ผ่าน"}:t);
-  TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
-  BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
+  updateAllArr(id, {status:"ผ่าน"});
   const t=allTasks().find(x=>x.id===id);
-  await fbUpdate(`tasks/${todayISO}/${id}`,{status:"ผ่าน",reviewer:ST.loginUser.name});
-  await gas("approveTask",{date:todayISO,taskName:t?.name||id,status:"ผ่าน",reviewer:ST.loginUser.name});
+  await fbUpdate(`tasks/${todayISO}/${id}`, {status:"ผ่าน", reviewer:ST.loginUser.name});
+  await gas("approveTask", {date:todayISO, taskName:t?.name||id, category:t?.category||"daily", status:"ผ่าน", reviewer:ST.loginUser.name});
   render();
 }
 
 async function rejT(id){
-  const upd=(arr)=>arr.map(t=>t.id===id?{...t,status:"ตีกลับ"}:t);
-  TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
-  BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
+  updateAllArr(id, {status:"ตีกลับ"});
   const t=allTasks().find(x=>x.id===id);
-  await fbUpdate(`tasks/${todayISO}/${id}`,{status:"ตีกลับ",reviewer:ST.loginUser.name});
-  await gas("approveTask",{date:todayISO,taskName:t?.name||id,status:"ตีกลับ",reviewer:ST.loginUser.name});
-  addN(`งาน "${t?.name||id}" ถูกตีกลับ`,true);render();
-}
-
-function subLeave(){
-  const type=document.getElementById("lType")?.value;
-  const reason=document.getElementById("lReason")?.value;
-  gas("leaveRequest",{date:todayISO,name:ST.loginUser.name,type,reason});
-  ST.leaveModal=false;addN("มีคำขอลางานรอการอนุมัติ");render();
-}
-
-function prevCatP(inp,cat){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{if(!ST.catLogs[cat])ST.catLogs[cat]={};ST.catLogs[cat].photoPreview=e.target.result;ST.catLogs[cat].photoFile=f;render();};r.readAsDataURL(f);}
-function openCat(cat){if(!ST.catLogs[cat])ST.catLogs[cat]={};ST.catModal=cat;render();}
-async function saveCat(cat){
-  const log=ST.catLogs[cat]||{};
-  const note=document.getElementById("catNote")?.value||"";
-  const detail=document.getElementById("abnDetail")?.value||"";
-  const urgency=document.getElementById("urgency")?.value||"";
-  ST.syncing=true;render();
-  let photoUrl="";
-  if(log.photoFile){photoUrl=await upload(log.photoFile)||"";}
-  ST.catLogs[cat]={...log,checked:true,time:tStr,note,abnormalDetail:detail,urgency,photoUrl};
-  ST.catModal=null;
-  await gas("catHealth",{date:todayISO,time:tStr,catName:cat,recordedBy:ST.loginUser.name,abnormal:log.abnormal,abnormalDetail:detail,urgency,note,photoUrl});
-  ST.syncing=false;
-  if(log.abnormal)addN(`⚠️ แมว ${cat} พบความผิดปกติ!`,true);
+  await fbUpdate(`tasks/${todayISO}/${id}`, {status:"ตีกลับ", reviewer:ST.loginUser.name});
+  await gas("approveTask", {date:todayISO, taskName:t?.name||id, category:t?.category||"daily", status:"ตีกลับ", reviewer:ST.loginUser.name});
+  addN(`งาน "${t?.name||id}" ถูกตีกลับ`, true);
   render();
 }
 
-function openKitten(id){ST.kittenModal=id;ST.kittenForm={time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:"",photoPreview:null};render();}
-function prevKP(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{ST.kittenForm.photoPreview=e.target.result;ST.kittenForm.photoFile=f;render();};r.readAsDataURL(f);}
-async function saveKitten(id){
-  const f={time:document.getElementById("kTime")?.value||tStr,weight:document.getElementById("kWeight")?.value||"",milk:ST.kittenForm.milk,wetFood:ST.kittenForm.wetFood,poop:ST.kittenForm.poop,pee:ST.kittenForm.pee,bloated:ST.kittenForm.bloated,note:document.getElementById("kNote")?.value||"",recordedBy:ST.loginUser.name};
-  if(!f.time)return;
-  ST.syncing=true;render();
+function subLeave(){
+  const type  =document.getElementById("lType")?.value;
+  const reason=document.getElementById("lReason")?.value;
+  gas("leaveRequest", {date:todayISO, name:ST.loginUser.name, type, reason});
+  ST.leaveModal=false; addN("มีคำขอลางานรอการอนุมัติ"); render();
+}
+
+function prevCatP(inp, cat){ const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{if(!ST.catLogs[cat])ST.catLogs[cat]={}; ST.catLogs[cat].photoPreview=e.target.result; ST.catLogs[cat].photoFile=f; render();}; r.readAsDataURL(f); }
+function openCat(cat){ if(!ST.catLogs[cat])ST.catLogs[cat]={}; ST.catModal=cat; render(); }
+async function saveCat(cat){
+  const log=ST.catLogs[cat]||{};
+  const note  =document.getElementById("catNote")?.value||"";
+  const detail=document.getElementById("abnDetail")?.value||"";
+  const urg   =document.getElementById("urgency")?.value||"";
+  ST.syncing=true; render();
   let photoUrl="";
-  if(ST.kittenForm.photoFile){photoUrl=await upload(ST.kittenForm.photoFile)||"";}
+  if(log.photoFile){ photoUrl=await upload(log.photoFile)||""; }
+  ST.catLogs[cat]={...log, checked:true, time:tStr, note, abnormalDetail:detail, urgency:urg, photoUrl};
+  ST.catModal=null;
+  await gas("catHealth", {date:todayISO, time:tStr, catName:cat, recordedBy:ST.loginUser.name, abnormal:log.abnormal, abnormalDetail:detail, urgency:urg, note, photoUrl});
+  ST.syncing=false;
+  if(log.abnormal) addN(`⚠️ แมว ${cat} พบความผิดปกติ!`, true);
+  render();
+}
+
+function openKitten(id){ ST.kittenModal=id; ST.kittenForm={time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:"",photoPreview:null}; render(); }
+function prevKP(inp){ const f=inp.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ST.kittenForm.photoPreview=e.target.result; ST.kittenForm.photoFile=f; render();}; r.readAsDataURL(f); }
+async function saveKitten(id){
+  const f={
+    time:document.getElementById("kTime")?.value||tStr,
+    weight:document.getElementById("kWeight")?.value||"",
+    milk:ST.kittenForm.milk, wetFood:ST.kittenForm.wetFood,
+    poop:ST.kittenForm.poop, pee:ST.kittenForm.pee, bloated:ST.kittenForm.bloated,
+    note:document.getElementById("kNote")?.value||"",
+    recordedBy:ST.loginUser.name
+  };
+  if(!f.time) return;
+  ST.syncing=true; render();
+  let photoUrl="";
+  if(ST.kittenForm.photoFile){ photoUrl=await upload(ST.kittenForm.photoFile)||""; }
   f.photoUrl=photoUrl;
   ST.kittenLogs[id]=[...(ST.kittenLogs[id]||[]),f];
   ST.kittenModal=null;
   const k=KITTENS.find(x=>x.id===id);
-  await gas("kittenLog",{date:todayISO,...f,kittenName:k?.name||id,photoUrl});
-  ST.syncing=false;render();
+  await gas("kittenLog", {date:todayISO, ...f, kittenName:k?.name||id, photoUrl});
+  ST.syncing=false; render();
 }
 
 function exportCSV(){
   const rows=[["ชื่อ","ค่าแรง/วัน","เข้างาน","เลิกงาน","สถานะ","ยอดสุทธิ"]];
   STAFF.filter(s=>s.role==="staff").forEach(s=>{
-    const u=USERS.find(x=>x.id===s.id);const w=u?.wage||0;const fine=s.status==="มาสาย"?ST.settings.lateFine:0;const net=s.checkIn?Math.max(0,w-fine):0;
+    const u=USERS.find(x=>x.id===s.id); const w=u?.wage||0;
+    const fine=s.status==="มาสาย"?ST.settings.lateFine:0;
+    const net=s.checkIn?Math.max(0,w-fine):0;
     rows.push([s.name,w,s.checkIn||"-",s.checkOut||"-",s.status,net]);
   });
   const csv=rows.map(r=>r.join(",")).join("\n");
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));a.download=`mori-${todayISO}.csv`;a.click();
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));
+  a.download=`mori-${todayISO}.csv`; a.click();
 }
 
-render();
+// ══════════════════════════════════════════════
+//  BOOT  — loadState ก่อน render ถูกต้องแล้ว
+// ══════════════════════════════════════════════
+render();         // แสดงหน้า login ก่อนทันที
+loadState();      // โหลด Firebase ใน background (จะ render() อีกครั้งเมื่อเสร็จ)
 </script>
 </body>
 </html>
