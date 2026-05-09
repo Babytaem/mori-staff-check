@@ -213,6 +213,8 @@ export default function App(){
   const[auditActive,setAuditActive]=useState(null);
   const[auditTimer,setAuditTimer]=useState(300);
   const[syncing,setSyncing]=useState(false);
+  const[checkInPhoto,setCheckInPhoto]=useState(null);
+  const[checkOutPhoto,setCheckOutPhoto]=useState(null);
   const timerRef=useRef(null);
 
   // ── derived staff list from users ──
@@ -311,9 +313,9 @@ export default function App(){
     });
     setSyncing(false);
   }
-  async function handleSubmitTask(id,note,ai){
+  async function handleSubmitTask(id,note,ai,photoUrl){
     const task=tasks.find(t=>t.id===id);
-    setTasks(ts=>ts.map(t=>t.id===id?{...t,status:"รอตรวจ",submittedAt:timeStr,note,photo:"📸",aiScore:ai.score,aiStatus:ai.status,aiNote:ai.note,history:[...t.history,{time:timeStr,by:me.name,action:"ส่งงาน",note}]}:t));
+    setTasks(ts=>ts.map(t=>t.id===id?{...t,status:"รอตรวจ",submittedAt:timeStr,note,photo:photoUrl||"📸",photoUrl,aiScore:ai.score,aiStatus:ai.status,aiNote:ai.note,history:[...t.history,{time:timeStr,by:me.name,action:"ส่งงาน",note}]}:t));
     addNotif(`มีงานรอตรวจ: ${task?.name}`);
     setSyncing(true);
     await sendToSheets("submitTask",{
@@ -321,8 +323,8 @@ export default function App(){
       round: task?.round, taskName: task?.name,
       assignee: task?.assignee, deadline: task?.deadline,
       submittedAt: timeStr, status:"รอตรวจ",
-      hasPhoto: true, aiScore: ai.score, aiStatus: ai.status,
-      note,
+      hasPhoto: !!photoUrl, photoUrl: photoUrl||"",
+      aiScore: ai.score, aiStatus: ai.status, note,
     });
     setSyncing(false);
   }
@@ -527,15 +529,23 @@ export default function App(){
             </Card>
             {!myStaff?.checkIn?(
               <Card>
+                <PhotoCapture label="📸 ถ่ายเซลฟี่เช็คอิน" required={true} onPhoto={url=>setCheckInPhoto(url)}/>
                 <div style={{fontSize:12,color:C.muted,marginBottom:8}}>หมายเหตุ (ถ้ามี)</div>
                 <textarea placeholder="เช่น รถติด, ป่วย, มีเหตุจำเป็น..." style={{width:"100%",borderRadius:8,border:"0.5px solid #E8E3DA",padding:8,fontSize:12,resize:"none",height:60,boxSizing:"border-box",fontFamily:"sans-serif"}}/>
                 <div style={{fontSize:11,color:C.muted,margin:"8px 0 4px"}}>📍 GPS: 13.7563, 100.5018</div>
-                <button onClick={handleCheckIn} style={{width:"100%",background:C.pinkDark,color:"#fff",border:"none",borderRadius:12,padding:"14px",fontSize:15,fontWeight:500,cursor:"pointer",marginTop:8}}>📸 เช็คอินเข้างาน</button>
+                <button onClick={()=>{if(!checkInPhoto){alert("กรุณาถ่ายรูปก่อนเช็คอินค่ะ");return;}handleCheckIn();}}
+                  style={{width:"100%",background:checkInPhoto?C.pinkDark:"#ccc",color:"#fff",border:"none",borderRadius:12,padding:"14px",fontSize:15,fontWeight:500,cursor:checkInPhoto?"pointer":"not-allowed",marginTop:8}}>
+                  เช็คอินเข้างาน
+                </button>
               </Card>
             ):!myStaff?.checkOut?(
               <Card>
                 <div style={{background:C.greenLight,borderRadius:10,padding:10,marginBottom:10}}><div style={{fontSize:12,color:C.green,fontWeight:500}}>✓ เช็คอินแล้ว เวลา {myStaff.checkIn}</div></div>
-                <button onClick={handleCheckOut} style={{width:"100%",background:"#444",color:"#fff",border:"none",borderRadius:12,padding:"14px",fontSize:15,fontWeight:500,cursor:"pointer"}}>📸 เช็คเอาต์เลิกงาน</button>
+                <PhotoCapture label="📸 ถ่ายเซลฟี่เช็คเอาต์" required={true} onPhoto={url=>setCheckOutPhoto(url)}/>
+                <button onClick={()=>{if(!checkOutPhoto){alert("กรุณาถ่ายรูปก่อนเช็คเอาต์ค่ะ");return;}handleCheckOut();}}
+                  style={{width:"100%",background:checkOutPhoto?"#444":"#ccc",color:"#fff",border:"none",borderRadius:12,padding:"14px",fontSize:15,fontWeight:500,cursor:checkOutPhoto?"pointer":"not-allowed"}}>
+                  เช็คเอาต์เลิกงาน
+                </button>
               </Card>
             ):(
               <Card><div style={{background:C.blueLight,borderRadius:10,padding:10}}><div style={{fontSize:12,color:C.blue,fontWeight:500}}>✓ เช็คเอาต์แล้ว เวลา {myStaff.checkOut}</div></div></Card>
