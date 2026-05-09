@@ -48,6 +48,105 @@ textarea{resize:none;height:60px}
 <body>
 <div id="app"></div>
 <script>
+const FB_CONFIG={apiKey:"AIzaSyAVk3RJy2vLErdc14nhaEehp68mHz16uEg",authDomain:"mori-staff-check.firebaseapp.com",databaseURL:"https://mori-staff-check-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"mori-staff-check",storageBucket:"mori-staff-check.firebasestorage.app",messagingSenderId:"218457293626",appId:"1:218457293626:web:79bb0d0623309871b5c603"};
+
+// Firebase helpers
+let db=null;
+async function initFB(){
+  if(db)return db;
+  const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const {getDatabase,ref,set,get,onValue,update}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+  const app=initializeApp(FB_CONFIG);
+  db=getDatabase(app);
+  window._fb={ref,set,get,onValue,update,db};
+  return db;
+}
+
+async function fbSet(path,data){
+  try{
+    await initFB();
+    const {ref,set,db}=window._fb;
+    await set(ref(db,path),data);
+  }catch(e){console.error("fbSet:",e);}
+}
+
+async function fbUpdate(path,data){
+  try{
+    await initFB();
+    const {ref,update,db}=window._fb;
+    await update(ref(db,path),data);
+  }catch(e){console.error("fbUpdate:",e);}
+}
+
+async function fbGet(path){
+  try{
+    await initFB();
+    const {ref,get,db}=window._fb;
+    const snap=await get(ref(db,path));
+    return snap.exists()?snap.val():null;
+  }catch(e){console.error("fbGet:",e);return null;}
+}
+
+function fbListen(path,cb){
+  initFB().then(()=>{
+    const {ref,onValue,db}=window._fb;
+    onValue(ref(db,path),snap=>{cb(snap.exists()?snap.val():null);});
+  });
+}
+
+// Load state from Firebase on start
+async function loadState(){
+  const today=todayISO;
+  // โหลดสถานะพนักงาน
+  const att=await fbGet(`attendance/${today}`);
+  if(att){
+    Object.entries(att).forEach(([name,data])=>{
+      const s=STAFF.find(x=>x.name===name);
+      if(s){s.checkIn=data.checkIn||null;s.checkOut=data.checkOut||null;s.status=data.status||"ยังไม่เข้างาน";}
+    });
+  }
+  // โหลดสถานะงาน
+  const tasks=await fbGet(`tasks/${today}`);
+  if(tasks){
+    Object.entries(tasks).forEach(([id,data])=>{
+      const upd=(arr)=>arr.map(t=>t.id===id?{...t,...data}:t);
+      TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
+      BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
+    });
+  }
+  // Start app
+render();
+loadState().then(()=>startListening());
+}
+
+// Listen realtime updates
+function startListening(){
+  const today=todayISO;
+  // ฟังสถานะพนักงาน
+  fbListen(`attendance/${today}`,(att)=>{
+    if(!att)return;
+    Object.entries(att).forEach(([name,data])=>{
+      const s=STAFF.find(x=>x.name===name);
+      if(s){s.checkIn=data.checkIn||null;s.checkOut=data.checkOut||null;s.status=data.status||"ยังไม่เข้างาน";}
+    });
+    render();
+  });
+  // ฟังสถานะงาน
+  fbListen(`tasks/${today}`,(tasks)=>{
+    if(!tasks)return;
+    Object.entries(tasks).forEach(([id,data])=>{
+      const upd=(arr)=>arr.map(t=>t.id===id?{...t,...data}:t);
+      TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
+      BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
+    });
+    render();
+  });
+  // ฟัง holiday mode
+  fbListen(`settings/holidayMode`,(val)=>{
+    if(val!==null&&ST.holidayMode!==val){ST.holidayMode=val;render();}
+  });
+}
+
 const GAS="https://script.google.com/macros/s/AKfycbygMIO5u6nH_Jx7afdvWOTLifygMKrpTSGtxYF6hhR0pwG6rSH7yX-Uurw-86-3LmE/exec";
 const CLD="dfdghi7tj";
 const PRESET="mori_staff";
@@ -659,9 +758,10 @@ function pinP(d){
     render();
   }
 }
-function toggleHol(){
+async function toggleHol(){
   if(!confirm(ST.holidayMode?"ยืนยันเปิดร้านปกติ?":"ยืนยันตั้งเป็นวันหยุดร้าน?"))return;
   ST.holidayMode=!ST.holidayMode;
+  await fbSet(`settings/holidayMode`,ST.holidayMode);
   addN(ST.holidayMode?"🏖️ ตั้งเป็นวันหยุดร้านแล้ว":"✅ เปิดร้านปกติแล้ว",ST.holidayMode);
   render();
 }
@@ -698,7 +798,11 @@ async function doCI(){
   if(s){s.checkIn=tStr;s.status=st;}
   ST.syncing=true;render();
   const url=await upload(b64toFile(ST.checkInPhoto,"checkin.jpg"));
-  await gas("checkIn",{date:todayISO,name:me.name,role:me.role,checkInTime:tStr,status:st,photoUrl:url||"",note:document.getElementById("ciNote")?.value||""});
+  const data={checkIn:tStr,status:st,photoUrl:url||"",name:me.name,role:me.role};
+  // บันทึกลง Firebase (realtime)
+  await fbSet(`attendance/${todayISO}/${me.name}`,data);
+  // บันทึกลง Google Sheets (สำรอง)
+  await gas("checkIn",{date:todayISO,...data,note:document.getElementById("ciNote")?.value||""});
   ST.syncing=false;ST.checkInPhoto=null;
   addN(`${me.name} เช็คอิน ${tStr}${late?" (สาย)":""}`,late);
   render();
@@ -711,6 +815,8 @@ async function doCO(){
   if(s){s.checkOut=tStr;s.status="เลิกงานแล้ว";}
   ST.syncing=true;render();
   const url=await upload(b64toFile(ST.checkOutPhoto,"checkout.jpg"));
+  const data={checkOut:tStr,status:"เลิกงานแล้ว",checkOutPhotoUrl:url||""};
+  await fbUpdate(`attendance/${todayISO}/${me.name}`,data);
   await gas("checkOut",{date:todayISO,name:me.name,checkOutTime:tStr,status:"เลิกงานแล้ว",photoUrl:url||""});
   ST.syncing=false;ST.checkOutPhoto=null;
   addN(`${me.name} เช็คเอาต์ ${tStr}`);
@@ -726,11 +832,15 @@ async function subT(id){
   const note=document.getElementById("tNote")?.value||"";
   const ai=ST.taskAI;
   const photoUrl=photos.map(p=>p.url||p.preview).filter(Boolean).join(",");
-  const upd=(arr)=>arr.map(t=>t.id===id?{...t,status:"รอตรวจ",submittedAt:tStr,note,photoUrl,aiScore:ai?.score,aiStatus:ai?.status}:t);
+  const taskData={status:"รอตรวจ",submittedAt:tStr,note,photoUrl,aiScore:ai?.score,aiStatus:ai?.status};
+  const upd=(arr)=>arr.map(t=>t.id===id?{...t,...taskData}:t);
   TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
   BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
   const t=allTasks().find(x=>x.id===id);
   ST.taskModal=null;ST.syncing=true;render();
+  // บันทึกลง Firebase (realtime)
+  await fbSet(`tasks/${todayISO}/${id}`,{...taskData,name:t?.name||id,assignee:t?.assignee||ST.loginUser.name,round:t?.round||"รายวัน"});
+  // บันทึกลง Google Sheets (สำรอง)
   await gas("submitTask",{date:todayISO,taskName:t?.name||id,assignee:t?.assignee||ST.loginUser.name,round:t?.round||"รายวัน",submittedAt:tStr,status:"รอตรวจ",photoUrl,aiScore:ai?.score,aiStatus:ai?.status,note});
   ST.syncing=false;addN(`มีงานรอตรวจ: ${t?.name||id}`);render();
 }
@@ -740,6 +850,7 @@ async function appT(id){
   TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
   BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
   const t=allTasks().find(x=>x.id===id);
+  await fbUpdate(`tasks/${todayISO}/${id}`,{status:"ผ่าน",reviewer:ST.loginUser.name});
   await gas("approveTask",{date:todayISO,taskName:t?.name||id,status:"ผ่าน",reviewer:ST.loginUser.name});
   render();
 }
@@ -749,6 +860,7 @@ async function rejT(id){
   TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);
   BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);
   const t=allTasks().find(x=>x.id===id);
+  await fbUpdate(`tasks/${todayISO}/${id}`,{status:"ตีกลับ",reviewer:ST.loginUser.name});
   await gas("approveTask",{date:todayISO,taskName:t?.name||id,status:"ตีกลับ",reviewer:ST.loginUser.name});
   addN(`งาน "${t?.name||id}" ถูกตีกลับ`,true);render();
 }
