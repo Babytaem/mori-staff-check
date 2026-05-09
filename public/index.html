@@ -96,7 +96,8 @@ const DAILY=[
   "เช็ดกระจกด้านนอกรอบร้านทุกบาน","กวาดหน้าร้าน รวมบนศาล",
   "เติมน้ำไหว้ศาล","กวาดบริเวณกรวยหน้าร้าน","เช็ดโต๊ะหน้าร้าน",
   "รดน้ำต้นไม้ และทิ้งขยะข้างร้าน","เช็ดโต๊ะข้างร้าน","กวาดข้างร้าน",
-  "เปิด/ปิดหน้าร้าน","ทำความสะอาดห้องน้ำ",
+  "เปิดหน้าร้าน","ปิดหน้าร้าน",
+  "ทำความสะอาดห้องน้ำ",
   "ทำความสะอาดห้องแมวเล็กรอบเย็น","เช็คสต็อกของ","ป้อนยาแมว"
 ];
 
@@ -137,19 +138,18 @@ let BATHROOM_TASKS=BATHROOM.map((t,i)=>({id:`bt${i}`,name:t,status:"ยังไ
 let KITCHEN_TASKS=KITCHEN.map((t,i)=>({id:`kt${i}`,name:t,status:"ยังไม่ทำ",photoUrl:null,note:""}));
 
 const S={
-  tab:"today",taskTab:"round",
+  tab:"today",taskTab:"round",reportTab:"daily",
   loggedIn:false,loginUser:null,pinInput:"",loginError:"",
   syncing:false,
   checkInPhoto:null,checkOutPhoto:null,
   taskModal:null,taskPhotoUrl:null,taskPhotoPreview:null,taskAI:null,taskAnalyzing:false,
-  notifs:[
-    {id:1,msg:"ระบบพร้อมใช้งานแล้วค่ะ 🐱",time:tStr,read:false,urgent:false},
-  ],
+  notifs:[{id:1,msg:"ระบบพร้อมใช้งานแล้วค่ะ 🐱",time:tStr,read:false,urgent:false}],
   showNotif:false,leaveModal:false,
   catModal:null,catLogs:{},
   kittenModal:null,kittenLogs:{k1:[],k2:[],k3:[]},
-  kittenForm:{time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:""},
+  kittenForm:{time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:"",photoPreview:null},
   settings:{openTime:"12:00",startWork:"11:30",endWork:"00:00",maxTime:"02:00",lateFine:100,noTaskFine:50,overtimeFine:50,overtimeStart:"02:15"},
+  holidayMode:false,
 };
 
 function mockAI(){
@@ -347,20 +347,26 @@ function main(){
       </div>`).join("")}
     </div>`:""}
     ${S.taskTab==="bathroom"?`<div class="card">
-      <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">ตารางเช็คห้องน้ำ</div>
-      ${BATHROOM_TASKS.map(t=>`<div class="tr" onclick="openGenTask('bt','${t.id}')">
-        <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
-        <div style="display:flex;gap:4px;align-items:center">${t.photoUrl?`<span title="${t.photoUrl}">📸</span>`:""}
-        <span class="badge ${badgeClass(t.status)}">${t.status}</span></div>
-      </div>`).join("")}
+      <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">ตารางเช็คห้องน้ำ — กดรายการเพื่อถ่ายรูปส่ง</div>
+      ${BATHROOM_TASKS.map(t=>`
+        <div class="tr" onclick="openGenTask('bt','${t.id}')">
+          <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            ${t.photoUrl?`<span>📸</span>`:""}
+            <span class="badge ${badgeClass(t.status)}">${t.status}</span>
+          </div>
+        </div>`).join("")}
     </div>`:""}
     ${S.taskTab==="kitchen"?`<div class="card">
-      <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">ตารางเช็คห้องครัว</div>
-      ${KITCHEN_TASKS.map(t=>`<div class="tr" onclick="openGenTask('kt','${t.id}')">
-        <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
-        <div style="display:flex;gap:4px;align-items:center">${t.photoUrl?`<span title="${t.photoUrl}">📸</span>`:""}
-        <span class="badge ${badgeClass(t.status)}">${t.status}</span></div>
-      </div>`).join("")}
+      <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">ตารางเช็คห้องครัว — กดรายการเพื่อถ่ายรูปส่ง</div>
+      ${KITCHEN_TASKS.map(t=>`
+        <div class="tr" onclick="openGenTask('kt','${t.id}')">
+          <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            ${t.photoUrl?`<span>📸</span>`:""}
+            <span class="badge ${badgeClass(t.status)}">${t.status}</span>
+          </div>
+        </div>`).join("")}
     </div>`:""}
   </div>`;}
 
@@ -393,30 +399,145 @@ function main(){
     </div>
   </div>`;}
 
-  // REPORT
-  else if(S.tab==="report"){content=`<div class="pad">
-    <div class="sec">สรุปค่าแรงวันนี้</div>
-    ${STAFF.filter(s=>s.role==="staff").map(s=>{
-      const u=USERS.find(x=>x.id===s.id);
-      const w=u?.wage||0;
-      const fine=s.status==="มาสาย"?S.settings.lateFine:0;
-      const net=s.checkIn?Math.max(0,w-fine):0;
-      return`<div class="card">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div>
-          <div style="flex:1;font-weight:500;font-size:13px">${s.name}</div>
-          <span style="font-size:11px;color:#5F5E5A">฿${w}/วัน</span>
+  else if(S.tab==="report"){
+    const reportTabs=["daily","week","month","score"];
+    if(!S.reportTab)S.reportTab="daily";
+    const tasksDone=TASKS.filter(t=>t.status==="ผ่าน").length;
+    const tasksReject=TASKS.filter(t=>t.status==="ตีกลับ").length;
+    const tasksMiss=TASKS.filter(t=>t.status==="เลยเวลา"||t.status==="ลืมงาน").length;
+    content=`<div class="pad">
+      <div class="tabs">
+        ${[["daily","รายวัน"],["week","รายสัปดาห์"],["month","รายเดือน"],["score","คะแนน"]].map(([k,l])=>`
+          <button class="tab ${S.reportTab===k?"active":""}" onclick="S.reportTab='${k}';render()">${l}</button>
+        `).join("")}
+      </div>
+
+      ${S.reportTab==="daily"?`
+        <div class="sec">สรุปวันนี้ — ${dStr}</div>
+        <div class="card">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div class="sb" style="background:#EAF3DE"><div style="font-size:18px;font-weight:500;color:#639922">${STAFF.filter(s=>s.checkIn).length}</div><div style="font-size:10px;color:#639922">เข้างาน</div></div>
+            <div class="sb" style="background:#FAECE7"><div style="font-size:18px;font-weight:500;color:#D85A30">${STAFF.filter(s=>s.status==="มาสาย").length}</div><div style="font-size:10px;color:#D85A30">มาสาย</div></div>
+            <div class="sb" style="background:#EAF3DE"><div style="font-size:18px;font-weight:500;color:#639922">${tasksDone}</div><div style="font-size:10px;color:#639922">งานผ่าน</div></div>
+            <div class="sb" style="background:#FCEBEB"><div style="font-size:18px;font-weight:500;color:#A32D2D">${tasksReject+tasksMiss}</div><div style="font-size:10px;color:#A32D2D">งานมีปัญหา</div></div>
+          </div>
+          <div style="font-size:12px;font-weight:500;margin-bottom:6px">สรุปค่าแรงวันนี้</div>
+          ${STAFF.filter(s=>s.role==="staff").map(s=>{
+            const u=USERS.find(x=>x.id===s.id);
+            const w=u?.wage||0;
+            const fine=s.status==="มาสาย"?S.settings.lateFine:0;
+            const net=s.checkIn?Math.max(0,w-fine):0;
+            return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:.5px solid #E8E3DA">
+              <div style="display:flex;align-items:center;gap:6px">
+                <div class="av" style="width:26px;height:26px;font-size:10px">${s.avatar}</div>
+                <span style="font-size:12px">${s.name}</span>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:12px;font-weight:500;color:#639922">฿${net}</div>
+                ${fine?`<div style="font-size:10px;color:#A32D2D">ค่าปรับ -฿${fine}</div>`:""}
+              </div>
+            </div>`;
+          }).join("")}
         </div>
-        <div style="font-size:11px">
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#5F5E5A">วันทำงาน</span><span>${s.checkIn?"1 วัน":"0 วัน"}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#5F5E5A">ค่าแรง</span><span>฿${s.checkIn?w:0}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:#5F5E5A">ค่าปรับ</span><span style="color:${fine?"#A32D2D":"inherit"}">${fine?`-฿${fine}`:"฿0"}</span></div>
-          <div style="display:flex;justify-content:space-between;border-top:.5px solid #E8E3DA;margin-top:4px;padding-top:4px"><span style="font-weight:500">ยอดสุทธิ</span><span style="font-weight:500;color:#639922">฿${net}</span></div>
+        <button onclick="exportCSV()" class="btn" style="background:#F1EFE8;color:#888780;margin-top:4px">📥 Export CSV วันนี้</button>
+      `:""}
+
+      ${S.reportTab==="week"?`
+        <div class="sec">สรุปรายสัปดาห์</div>
+        <div class="card">
+          <div style="font-size:12px;color:#5F5E5A;margin-bottom:10px">สัปดาห์ปัจจุบัน</div>
+          ${STAFF.filter(s=>s.role==="staff").map(s=>{
+            const u=USERS.find(x=>x.id===s.id);
+            const w=u?.wage||0;
+            const days=s.checkIn?1:0;
+            return`<div class="card" style="margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div class="av" style="width:32px;height:32px;font-size:12px">${s.avatar}</div>
+                <div style="flex:1;font-weight:500;font-size:13px">${s.name}</div>
+                <span style="font-size:11px;color:#5F5E5A">฿${w}/วัน</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
+                <div style="background:#FAF7F2;border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:500">${days}</div><div style="font-size:9px;color:#5F5E5A">วันทำงาน</div></div>
+                <div style="background:#FAF7F2;border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:500;color:#639922">฿${days*w}</div><div style="font-size:9px;color:#5F5E5A">ค่าแรงรวม</div></div>
+                <div style="background:#FAF7F2;border-radius:8px;padding:6px"><div style="font-size:16px;font-weight:500;color:#A32D2D">${s.status==="มาสาย"?1:0}</div><div style="font-size:9px;color:#5F5E5A">ครั้งสาย</div></div>
+              </div>
+            </div>`;
+          }).join("")}
         </div>
-      </div>`;
-    }).join("")}
-    <button onclick="exportCSV()" class="btn b-gy" style="margin-top:4px">📥 Export CSV</button>
-  </div>`;}
+        <button onclick="exportCSV()" class="btn" style="background:#F1EFE8;color:#888780;margin-top:4px">📥 Export CSV สัปดาห์นี้</button>
+      `:""}
+
+      ${S.reportTab==="month"?`
+        <div class="sec">สรุปรายเดือน — ${now.toLocaleDateString("th-TH",{month:"long",year:"numeric"})}</div>
+        ${STAFF.filter(s=>s.role==="staff").map(s=>{
+          const u=USERS.find(x=>x.id===s.id);
+          const w=u?.wage||0;
+          const days=s.checkIn?1:0;
+          const lateFine=s.status==="มาสาย"?S.settings.lateFine:0;
+          const noTaskFine=tasksMiss*S.settings.noTaskFine;
+          const net=Math.max(0,days*w-lateFine-noTaskFine);
+          return`<div class="card">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <div class="av" style="width:36px;height:36px;font-size:13px">${s.avatar}</div>
+              <div style="flex:1"><div style="font-weight:500;font-size:13px">${s.name}</div><div style="font-size:11px;color:#5F5E5A">฿${w}/วัน</div></div>
+            </div>
+            <div style="font-size:11px">
+              ${[
+                ["วันทำงาน",`${days} วัน`,""],
+                ["ค่าแรงรวม",`฿${days*w}`,""],
+                ["ค่าปรับมาสาย",lateFine?`-฿${lateFine}`:"฿0",lateFine?"#A32D2D":""],
+                ["ค่าปรับงานไม่ส่ง",noTaskFine?`-฿${noTaskFine}`:"฿0",noTaskFine?"#A32D2D":""],
+              ].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:.5px solid #F1EFE8">
+                <span style="color:#5F5E5A">${l}</span><span style="color:${c||"#2C2C2A"}">${v}</span>
+              </div>`).join("")}
+              <div style="display:flex;justify-content:space-between;padding:5px 0;margin-top:2px">
+                <span style="font-weight:500">ยอดสุทธิเดือนนี้</span>
+                <span style="font-weight:500;color:#639922;font-size:14px">฿${net}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join("")}
+        <button onclick="exportCSV()" class="btn" style="background:#F1EFE8;color:#888780;margin-top:4px">📥 Export CSV เดือนนี้</button>
+      `:""}
+
+      ${S.reportTab==="score"?`
+        <div class="sec">คะแนนพนักงาน</div>
+        ${[...STAFF].filter(s=>s.role==="staff").sort((a,b)=>b.score-a.score).map((s,i)=>{
+          const levelColor=s.level==="Gold"?"#BA7517":s.level==="Silver"?"#888780":s.level==="Bronze"?"#993C1D":"#A32D2D";
+          const levelBg=s.level==="Gold"?"#FAEEDA":s.level==="Silver"?"#D3D1C7":s.level==="Bronze"?"#F5C4B3":"#FCEBEB";
+          const taskDone=TASKS.filter(t=>t.assignee===s.name&&t.status==="ผ่าน").length;
+          const taskRej=TASKS.filter(t=>t.assignee===s.name&&t.status==="ตีกลับ").length;
+          return`<div class="card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:28px;height:28px;border-radius:50%;background:${levelBg};display:flex;align-items:center;justify-content:center;font-weight:500;font-size:13px;color:${levelColor}">${i+1}</div>
+              <div class="av" style="width:36px;height:36px;font-size:13px">${s.avatar}</div>
+              <div style="flex:1"><div style="font-weight:500;font-size:13px">${s.name}</div>
+                <div style="height:5px;background:#F1EFE8;border-radius:4px;margin-top:4px;overflow:hidden">
+                  <div style="height:100%;width:${s.score}%;background:${levelColor};border-radius:4px"></div>
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:20px;font-weight:500;color:${levelColor}">${s.score}</div>
+                <span class="badge" style="background:${levelBg};color:${levelColor}">${s.level}</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
+              <div style="background:#EAF3DE;border-radius:8px;padding:6px"><div style="font-size:15px;font-weight:500;color:#639922">${taskDone}</div><div style="font-size:9px;color:#639922">งานผ่าน</div></div>
+              <div style="background:#FCEBEB;border-radius:8px;padding:6px"><div style="font-size:15px;font-weight:500;color:#A32D2D">${taskRej}</div><div style="font-size:9px;color:#A32D2D">ถูกตีกลับ</div></div>
+              <div style="background:${s.status==="มาสาย"?"#FAECE7":"#F1EFE8"};border-radius:8px;padding:6px"><div style="font-size:15px;font-weight:500;color:${s.status==="มาสาย"?"#D85A30":"#888780"}">${s.status==="มาสาย"?1:0}</div><div style="font-size:9px;color:#5F5E5A">ครั้งสาย</div></div>
+            </div>
+          </div>`;
+        }).join("")}
+        <div class="card" style="background:#FBEAF0">
+          <div style="font-size:12px;font-weight:500;color:#993556;margin-bottom:6px">เกณฑ์ระดับคะแนน</div>
+          ${[["🥇 Gold","90+ คะแนน","#FAEEDA","#BA7517"],["🥈 Silver","70-89 คะแนน","#D3D1C7","#5F5E5A"],["🥉 Bronze","50-69 คะแนน","#F5C4B3","#993C1D"],["⚠️ Warning","ต่ำกว่า 50","#FCEBEB","#A32D2D"]].map(([l,d,bg,c])=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+              <span class="badge" style="background:${bg};color:${c}">${l}</span>
+              <span style="font-size:11px;color:#5F5E5A">${d}</span>
+            </div>`).join("")}
+        </div>
+      `:""}
+    </div>`;}
 
   // SETTINGS
   else if(S.tab==="settings"){
@@ -516,30 +637,42 @@ function main(){
       <div class="mc">
         <div style="font-weight:500;font-size:15px;margin-bottom:4px">🐱 ${cat}</div>
         <div style="font-size:11px;color:#5F5E5A;margin-bottom:12px">บันทึกสุขภาพประจำวัน</div>
-        ${["ใบหน้า ตา/จมูก/ปาก","หู","แผ่นหลัง","หน้าท้อง","ลำตัว","ขา","เท้า/เล็บ","หาง","ขน","การกิน","การเดิน","ภาพรวม"].map(item=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:.5px solid #E8E3DA">
-            <span style="font-size:12px">${item}</span>
-            <select style="font-size:11px;border:.5px solid #E8E3DA;border-radius:6px;padding:2px 4px"><option>ปกติ</option><option>ผิดปกติ</option><option>ไม่ได้ตรวจ</option></select>
-          </div>`).join("")}
-        <div style="margin-top:10px">
-          <label style="font-size:12px;font-weight:500;cursor:pointer">
-            <input type="checkbox" style="margin-right:6px" id="abnCb" ${log.abnormal?"checked":""} onchange="toggleAbn(this.checked)"/>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px">
+          ${["ใบหน้า/ตา/จมูก","หู","แผ่นหลัง","หน้าท้อง","ลำตัว","ขา","เท้า/เล็บ","หาง","ขน","การกิน","การเดิน","ภาพรวม"].map(item=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 6px;background:#FAF7F2;border-radius:6px">
+              <span style="font-size:11px">${item}</span>
+              <select style="font-size:10px;border:.5px solid #E8E3DA;border-radius:5px;padding:1px 2px;width:68px">
+                <option>ปกติ</option><option>ผิดปกติ</option><option>ไม่ตรวจ</option>
+              </select>
+            </div>`).join("")}
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="abnCb" ${log.abnormal?"checked":""} onchange="toggleAbn(this.checked)"/>
             พบความผิดปกติ
           </label>
         </div>
-        ${log.abnormal?`<div style="background:#FCEBEB;border-radius:10px;padding:10px;margin-top:8px">
-          <textarea id="abnDetail" placeholder="รายละเอียดอาการ..." style="margin-bottom:8px">${log.abnormalDetail||""}</textarea>
-          <select id="urgency" style="margin-bottom:8px"><option>ความเร่งด่วน: ต่ำ</option><option>ความเร่งด่วน: กลาง</option><option>ความเร่งด่วน: สูง — แจ้งเจ้าของทันที!</option></select>
+        ${log.abnormal?`<div style="background:#FCEBEB;border-radius:10px;padding:10px;margin-bottom:8px">
+          <textarea id="abnDetail" placeholder="รายละเอียดอาการ..." style="margin-bottom:8px;height:50px">${log.abnormalDetail||""}</textarea>
+          <select id="urgency" style="margin-bottom:4px">
+            <option>ความเร่งด่วน: ต่ำ</option>
+            <option>ความเร่งด่วน: กลาง</option>
+            <option>ความเร่งด่วน: สูง — แจ้งเจ้าของทันที!</option>
+          </select>
         </div>`:""}
-        <textarea id="catNote" placeholder="หมายเหตุเพิ่มเติม..." style="margin-top:8px">${log.note||""}</textarea>
-        <div style="margin-top:10px">
-          <div style="font-size:12px;color:#5F5E5A;margin-bottom:6px">📸 ถ่ายรูปแมว (ถ้ามี)</div>
+        <textarea id="catNote" placeholder="หมายเหตุเพิ่มเติม..." style="margin-bottom:8px;height:50px">${log.note||""}</textarea>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:500;color:#A32D2D;margin-bottom:6px">📸 ถ่ายรูปแมว (บังคับ)</div>
           <input type="file" id="catPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="prevCatPhoto(this)"/>
-          ${log.photoPreview?`<img src="${log.photoPreview}" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;margin-bottom:8px;display:block"/>
-          <button onclick="S.catLogs['${cat}'].photoPreview=null;render()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;margin-bottom:8px">ถ่ายใหม่</button>`
-          :`<button class="pb" onclick="document.getElementById('catPhotoFile').click()">📷 ถ่ายรูป/เลือกรูป</button>`}
+          ${log.photoPreview
+            ?`<img src="${log.photoPreview}" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;margin-bottom:6px;display:block"/>
+              <button onclick="S.catLogs['${cat}'].photoPreview=null;render()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit">ถ่ายใหม่</button>`
+            :`<button class="pb" onclick="document.getElementById('catPhotoFile').click()">📷 ถ่ายรูปแมว (บังคับก่อนบันทึก)</button>`}
         </div>
-        <button class="btn" style="background:#993556;color:#fff;margin-top:10px" onclick="saveCat('${cat}')">📸 บันทึกและส่งรูป</button>
+        <button class="btn" style="background:${log.photoPreview?"#993556":"#E8E3DA"};color:${log.photoPreview?"#fff":"#aaa"};margin-top:8px;cursor:${log.photoPreview?"pointer":"not-allowed"}" 
+          ${!log.photoPreview?"disabled":""}
+          onclick="${log.photoPreview?`saveCat('${cat}')`:""}"
+        >${log.photoPreview?"📸 บันทึกและส่งข้อมูล":"📷 ถ่ายรูปก่อนจึงจะบันทึกได้"}</button>
         <button class="btn" style="background:#F1EFE8;color:#888780" onclick="S.catModal=null;render()">ปิด</button>
       </div>
     </div>`;}
@@ -591,13 +724,19 @@ function main(){
             <div style="font-size:12px;font-weight:500;margin-bottom:5px">${field.label}</div>
             <div style="display:flex;gap:6px">${field.opts.map(opt=>`<button onclick="S.kittenForm['${field.key}']='${opt}';render()" style="flex:1;padding:7px 4px;border-radius:8px;border:.5px solid ${f[field.key]===opt?"#993556":"#F4C0D1"};font-size:11px;cursor:pointer;background:${f[field.key]===opt?"#993556":"#fff"};color:${f[field.key]===opt?"#fff":"#2C2C2A"};font-family:inherit">${opt}</button>`).join("")}</div>
           </div>`).join("")}
-          <div style="margin-top:10px">
-            <div style="font-size:12px;font-weight:500;margin-bottom:5px">📸 ถ่ายรูปลูกแมว/ตาชั่ง</div>
+          <textarea id="kNote" placeholder="หมายเหตุ เช่น ซึมผิดปกติ, จาม..." style="border:.5px solid #F4C0D1;background:#fff;margin-bottom:10px;height:50px">${f.note}</textarea>
+          <div style="margin-bottom:10px">
+            <div style="font-size:12px;font-weight:500;color:#A32D2D;margin-bottom:5px">📸 ถ่ายรูปลูกแมว/ตาชั่ง (บังคับ)</div>
             <input type="file" id="kPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="prevKPhoto(this)"/>
-            ${S.kittenForm.photoPreview?`<img src="${S.kittenForm.photoPreview}" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;margin-bottom:8px;display:block"/>
-            <button onclick="S.kittenForm.photoPreview=null;render()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;margin-bottom:8px">ถ่ายใหม่</button>`
-            :`<button class="pb" onclick="document.getElementById('kPhotoFile').click()">📷 ถ่ายรูปตาชั่ง/ลูกแมว</button>`}
+            ${S.kittenForm.photoPreview
+              ?`<img src="${S.kittenForm.photoPreview}" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;margin-bottom:6px;display:block"/>
+                <button onclick="S.kittenForm.photoPreview=null;render()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;margin-bottom:6px">ถ่ายใหม่</button>`
+              :`<button class="pb" onclick="document.getElementById('kPhotoFile').click()">📷 ถ่ายรูปก่อนบันทึกรอบนี้ (บังคับ)</button>`}
           </div>
+          ${S.kittenForm.photoPreview
+            ?`<button class="btn" style="background:#993556;color:#fff;margin-top:0" onclick="saveKitten('${k.id}')">✅ บันทึกรอบนี้</button>`
+            :`<div style="background:#E8E3DA;border-radius:10px;padding:10px;text-align:center;font-size:12px;color:#888780">📷 ถ่ายรูปก่อนจึงจะบันทึกได้ค่ะ</div>`
+          }
           <button class="btn" style="background:#993556;color:#fff;margin-top:0" onclick="saveKitten('${k.id}')">บันทึกรอบนี้</button>
         </div>
         <button class="btn" style="background:#F1EFE8;color:#888780" onclick="S.kittenModal=null;render()">ปิด</button>
@@ -611,6 +750,10 @@ function main(){
     <div><h1>🐱 Mori Staff Check</h1><small>${dStr}</small></div>
     <div style="display:flex;gap:10px;align-items:center">
       ${S.syncing?`<span class="sync">⏳ ซิงค์...</span>`:""}
+      ${me.role==="owner"||me.role==="manager"?`
+        <button onclick="toggleHoliday()" style="background:${S.holidayMode?"#639922":"#FAEEDA"};color:${S.holidayMode?"#fff":"#BA7517"};border:none;border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">
+          ${S.holidayMode?"✓ วันหยุด":"🏖️ ตั้งวันหยุด"}
+        </button>`:""}
       <div style="position:relative;cursor:pointer" onclick="S.showNotif=!S.showNotif;render()">
         <span style="font-size:20px">🔔</span>
         ${unread>0?`<span style="position:absolute;top:-4px;right:-4px;background:#A32D2D;color:#fff;font-size:9px;border-radius:10px;padding:1px 4px">${unread}</span>`:""}
@@ -698,7 +841,15 @@ async function doCO(){
 function openTask(id){S.taskModal=id;S.taskPhotoPreview=null;S.taskPhotoUrl=null;S.taskAI=null;S.taskAnalyzing=false;render();}
 function openDTask(id){S.taskModal=id;S.taskPhotoPreview=null;S.taskPhotoUrl=null;S.taskAI=null;S.taskAnalyzing=false;render();}
 function openBTask(id){S.taskModal=id;S.taskPhotoPreview=null;S.taskPhotoUrl=null;S.taskAI=null;S.taskAnalyzing=false;render();}
-function openGenTask(type,id){S.taskModal=id;S.taskPhotoPreview=null;S.taskPhotoUrl=null;S.taskAI=null;S.taskAnalyzing=false;render();}
+function toggleHoliday(){
+  if(!confirm(S.holidayMode?"ยืนยันเปิดร้านปกติ?":"ยืนยันตั้งเป็นวันหยุดร้าน? พนักงานจะไม่สามารถเช็คอินได้"))return;
+  S.holidayMode=!S.holidayMode;
+  addNotif(S.holidayMode?"🏖️ Owner ตั้งเป็นวันหยุดร้านแล้วค่ะ":"✅ เปิดร้านปกติแล้วค่ะ",S.holidayMode);
+  render();
+}
+function openGenTask(type,id){
+  S.taskModal=id;S.taskPhotoPreview=null;S.taskPhotoUrl=null;S.taskAI=null;S.taskAnalyzing=false;render();
+}
 function closeModal(){S.taskModal=null;S.leaveModal=false;render();}
 
 async function subTask(id){
