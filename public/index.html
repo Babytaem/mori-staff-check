@@ -149,7 +149,7 @@ const S={
   catModal:null,catLogs:{},
   kittenModal:null,kittenLogs:{k1:[],k2:[],k3:[]},
   kittenForm:{time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:""},
-  settings:{openTime:"12:00",startWork:"11:30",endWork:"00:00",maxTime:"02:00",lateFine:0,noTaskFine:0},
+  settings:{openTime:"12:00",startWork:"11:30",endWork:"00:00",maxTime:"02:00",lateFine:100,noTaskFine:50,overtimeFine:50,overtimeStart:"02:15"},
 };
 
 function mockAI(){
@@ -349,16 +349,16 @@ function main(){
     ${S.taskTab==="bathroom"?`<div class="card">
       <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">ตารางเช็คห้องน้ำ</div>
       ${BATHROOM_TASKS.map(t=>`<div class="tr" onclick="openGenTask('bt','${t.id}')">
-        <div><div style="font-size:12px">${t.name}</div></div>
-        <div style="display:flex;gap:4px;align-items:center">${t.photoUrl?`<span>📸</span>`:""}
+        <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
+        <div style="display:flex;gap:4px;align-items:center">${t.photoUrl?`<span title="${t.photoUrl}">📸</span>`:""}
         <span class="badge ${badgeClass(t.status)}">${t.status}</span></div>
       </div>`).join("")}
     </div>`:""}
     ${S.taskTab==="kitchen"?`<div class="card">
       <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">ตารางเช็คห้องครัว</div>
       ${KITCHEN_TASKS.map(t=>`<div class="tr" onclick="openGenTask('kt','${t.id}')">
-        <div><div style="font-size:12px">${t.name}</div></div>
-        <div style="display:flex;gap:4px;align-items:center">${t.photoUrl?`<span>📸</span>`:""}
+        <div><div style="font-size:12px">${t.name}</div>${t.submittedAt?`<div style="font-size:10px;color:#5F5E5A">ส่ง ${t.submittedAt}</div>`:""}</div>
+        <div style="display:flex;gap:4px;align-items:center">${t.photoUrl?`<span title="${t.photoUrl}">📸</span>`:""}
         <span class="badge ${badgeClass(t.status)}">${t.status}</span></div>
       </div>`).join("")}
     </div>`:""}
@@ -532,6 +532,13 @@ function main(){
           <select id="urgency" style="margin-bottom:8px"><option>ความเร่งด่วน: ต่ำ</option><option>ความเร่งด่วน: กลาง</option><option>ความเร่งด่วน: สูง — แจ้งเจ้าของทันที!</option></select>
         </div>`:""}
         <textarea id="catNote" placeholder="หมายเหตุเพิ่มเติม..." style="margin-top:8px">${log.note||""}</textarea>
+        <div style="margin-top:10px">
+          <div style="font-size:12px;color:#5F5E5A;margin-bottom:6px">📸 ถ่ายรูปแมว (ถ้ามี)</div>
+          <input type="file" id="catPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="prevCatPhoto(this)"/>
+          ${log.photoPreview?`<img src="${log.photoPreview}" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;margin-bottom:8px;display:block"/>
+          <button onclick="S.catLogs['${cat}'].photoPreview=null;render()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;margin-bottom:8px">ถ่ายใหม่</button>`
+          :`<button class="pb" onclick="document.getElementById('catPhotoFile').click()">📷 ถ่ายรูป/เลือกรูป</button>`}
+        </div>
         <button class="btn" style="background:#993556;color:#fff;margin-top:10px" onclick="saveCat('${cat}')">📸 บันทึกและส่งรูป</button>
         <button class="btn" style="background:#F1EFE8;color:#888780" onclick="S.catModal=null;render()">ปิด</button>
       </div>
@@ -584,7 +591,13 @@ function main(){
             <div style="font-size:12px;font-weight:500;margin-bottom:5px">${field.label}</div>
             <div style="display:flex;gap:6px">${field.opts.map(opt=>`<button onclick="S.kittenForm['${field.key}']='${opt}';render()" style="flex:1;padding:7px 4px;border-radius:8px;border:.5px solid ${f[field.key]===opt?"#993556":"#F4C0D1"};font-size:11px;cursor:pointer;background:${f[field.key]===opt?"#993556":"#fff"};color:${f[field.key]===opt?"#fff":"#2C2C2A"};font-family:inherit">${opt}</button>`).join("")}</div>
           </div>`).join("")}
-          <textarea id="kNote" placeholder="หมายเหตุ เช่น ซึมผิดปกติ, จาม..." style="border:.5px solid #F4C0D1;background:#fff;margin-bottom:10px">${f.note}</textarea>
+          <div style="margin-top:10px">
+            <div style="font-size:12px;font-weight:500;margin-bottom:5px">📸 ถ่ายรูปลูกแมว/ตาชั่ง</div>
+            <input type="file" id="kPhotoFile" accept="image/*" capture="environment" style="display:none" onchange="prevKPhoto(this)"/>
+            ${S.kittenForm.photoPreview?`<img src="${S.kittenForm.photoPreview}" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;margin-bottom:8px;display:block"/>
+            <button onclick="S.kittenForm.photoPreview=null;render()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:8px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;margin-bottom:8px">ถ่ายใหม่</button>`
+            :`<button class="pb" onclick="document.getElementById('kPhotoFile').click()">📷 ถ่ายรูปตาชั่ง/ลูกแมว</button>`}
+          </div>
           <button class="btn" style="background:#993556;color:#fff;margin-top:0" onclick="saveKitten('${k.id}')">บันทึกรอบนี้</button>
         </div>
         <button class="btn" style="background:#F1EFE8;color:#888780" onclick="S.kittenModal=null;render()">ปิด</button>
@@ -692,13 +705,20 @@ async function subTask(id){
   if(!S.taskPhotoUrl&&!S.taskPhotoPreview)return;
   const note=document.getElementById("tNote")?.value||"";
   const ai=S.taskAI;
-  // อัปเดต task ทุกประเภท
   const updateArr=(arr)=>arr.map(t=>t.id===id?{...t,status:"รอตรวจ",submittedAt:tStr,note,photoUrl:S.taskPhotoUrl,aiScore:ai?.score,aiStatus:ai?.status,aiNote:ai?.note}:t);
   TASKS=updateArr(TASKS);DAILY_TASKS=updateArr(DAILY_TASKS);BARISTA_TASKS=updateArr(BARISTA_TASKS);
   BATHROOM_TASKS=updateArr(BATHROOM_TASKS);KITCHEN_TASKS=updateArr(KITCHEN_TASKS);
-  const t=TASKS.find(x=>x.id===id)||DAILY_TASKS.find(x=>x.id===id)||BARISTA_TASKS.find(x=>x.id===id);
+  const t=[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS].find(x=>x.id===id);
   S.syncing=true;S.taskModal=null;render();
-  await gas("submitTask",{date:todayISO,taskName:t?.name||id,assignee:t?.assignee||S.loginUser.name,round:t?.round||t?.time||"รายวัน",deadline:t?.deadline||t?.time||"",submittedAt:tStr,status:"รอตรวจ",photoUrl:S.taskPhotoUrl||"",aiScore:ai?.score,aiStatus:ai?.status,note});
+  await gas("submitTask",{
+    date:todayISO,taskName:t?.name||id,
+    assignee:t?.assignee||S.loginUser.name,
+    round:t?.round||t?.time||"รายวัน",
+    deadline:t?.deadline||t?.time||"",
+    submittedAt:tStr,status:"รอตรวจ",
+    photoUrl:S.taskPhotoUrl||"",
+    aiScore:ai?.score,aiStatus:ai?.status,note
+  });
   S.syncing=false;
   addNotif(`มีงานรอตรวจ: ${t?.name||id}`);
   render();
@@ -732,22 +752,42 @@ function subLeave(){
   render();
 }
 
-function openCat(cat){S.catModal=cat;render();}
+function openCat(cat){S.catModal=cat;if(!S.catLogs[cat])S.catLogs[cat]={};render();}
 function toggleAbn(v){S.catLogs[S.catModal]={...S.catLogs[S.catModal],abnormal:v};render();}
+function prevCatPhoto(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{S.catLogs[S.catModal]={...S.catLogs[S.catModal],photoPreview:e.target.result,photoFile:f};render();};
+  r.readAsDataURL(f);
+}
 async function saveCat(cat){
   const log=S.catLogs[cat]||{};
   const note=document.getElementById("catNote")?.value||"";
   const detail=document.getElementById("abnDetail")?.value||"";
   const urgency=document.getElementById("urgency")?.value||"";
-  S.catLogs[cat]={...log,checked:true,time:tStr,note,abnormalDetail:detail,urgency};
+  // ถ่ายรูปแมว
+  const fileInput=document.getElementById("catPhotoFile");
+  let photoUrl="";
+  if(fileInput?.files[0]){
+    S.syncing=true;render();
+    photoUrl=await upload(fileInput.files[0])||"";
+  }
+  S.catLogs[cat]={...log,checked:true,time:tStr,note,abnormalDetail:detail,urgency,photoUrl};
   S.syncing=true;S.catModal=null;render();
-  await gas("catHealth",{date:todayISO,time:tStr,catName:cat,recordedBy:S.loginUser.name,overall:"ปกติ",abnormal:log.abnormal,abnormalDetail:detail,urgency,note});
+  await gas("catHealth",{date:todayISO,time:tStr,catName:cat,recordedBy:S.loginUser.name,overall:"ปกติ",abnormal:log.abnormal,abnormalDetail:detail,urgency,note,photoUrl});
   S.syncing=false;
   if(log.abnormal)addNotif(`⚠️ แมว ${cat} พบความผิดปกติ!`,true);
   render();
 }
 
-function openKitten(id){S.kittenModal=id;S.kittenForm={time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:""};render();}
+function prevKPhoto(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{S.kittenForm={...S.kittenForm,photoPreview:e.target.result,photoFile:f};render();};
+  r.readAsDataURL(f);
+}
+
+function openKitten(id){S.kittenModal=id;S.kittenForm={time:tStr,weight:"",milk:"",wetFood:"",poop:"",pee:"",bloated:"",note:"",photoPreview:null};render();}
 async function saveKitten(id){
   const f={
     time:document.getElementById("kTime")?.value||tStr,
@@ -759,10 +799,18 @@ async function saveKitten(id){
     recordedBy:S.loginUser.name,
   };
   if(!f.time)return;
+  // ถ่ายรูปลูกแมว
+  const kFile=document.getElementById("kPhotoFile");
+  let photoUrl="";
+  if(kFile?.files[0]){
+    S.syncing=true;render();
+    photoUrl=await upload(kFile.files[0])||"";
+  }
+  f.photoUrl=photoUrl;
   S.kittenLogs[id]=[...(S.kittenLogs[id]||[]),f];
   S.syncing=true;S.kittenModal=null;render();
   const k=KITTENS.find(x=>x.id===id);
-  await gas("kittenLog",{date:todayISO,...f,kittenName:k?.name||id});
+  await gas("kittenLog",{date:todayISO,...f,kittenName:k?.name||id,photoUrl});
   S.syncing=false;render();
 }
 
