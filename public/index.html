@@ -2,9 +2,14 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#993556"/>
+<style>
+  html { touch-action: manipulation; }
+</style>
 <title>Mori Staff Check</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -99,18 +104,17 @@ const state = {
 };
 
 const users = [
-  {id:1,name:"คุณนาย เจ้าของ",role:"owner",avatar:"นจ",pin:"1111",wage:0},
-  {id:2,name:"เนย แมวรัก",role:"manager",avatar:"นม",pin:"2222",wage:500},
-  {id:3,name:"มินิ สาวน้อย",role:"staff",avatar:"มส",pin:"3333",wage:400},
-  {id:4,name:"แพม บาริสต้า",role:"staff",avatar:"พบ",pin:"4444",wage:420},
-  {id:5,name:"ออม ใจดี",role:"staff",avatar:"อจ",pin:"5555",wage:380},
+  {id:1,name:"Owner",role:"owner",avatar:"OW",pin:"4543",wage:0},
+  {id:2,name:"เลขาดูแลระบบ",role:"manager",avatar:"ลข",pin:"8856",wage:0},
+  {id:3,name:"น้องเนย บาริสต้า",role:"staff",avatar:"นย",pin:"3333",wage:400},
+  {id:4,name:"น้องต้า พี่เลี้ยงแมว",role:"staff",avatar:"ตา",pin:"4444",wage:400},
 ];
 
 const staffList = [
-  {id:2,name:"เนย แมวรัก",role:"manager",avatar:"นม",checkIn:"11:20",checkOut:null,status:"เข้างานแล้ว",score:94,level:"Gold"},
-  {id:3,name:"มินิ สาวน้อย",role:"staff",avatar:"มส",checkIn:"11:25",checkOut:null,status:"เข้างานแล้ว",score:87,level:"Silver"},
-  {id:4,name:"แพม บาริสต้า",role:"staff",avatar:"พบ",checkIn:"11:47",checkOut:null,status:"มาสาย",score:62,level:"Bronze"},
-  {id:5,name:"ออม ใจดี",role:"staff",avatar:"อจ",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:42,level:"Warning"},
+  {id:1,name:"Owner",role:"owner",avatar:"OW",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:100,level:"Gold"},
+  {id:2,name:"เลขาดูแลระบบ",role:"manager",avatar:"ลข",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:100,level:"Gold"},
+  {id:3,name:"น้องเนย บาริสต้า",role:"staff",avatar:"นย",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:0,level:"Silver"},
+  {id:4,name:"น้องต้า พี่เลี้ยงแมว",role:"staff",avatar:"ตา",checkIn:null,checkOut:null,status:"ยังไม่เข้างาน",score:0,level:"Silver"},
 ];
 
 const taskRounds = [
@@ -182,7 +186,7 @@ function renderLogin(){
           <div style="margin-left:auto;font-size:18px;color:#888780">›</div>
         </button>
       `).join("")}
-      <div style="font-size:10px;color:#888780;margin-top:16px">Demo PIN: 1111/2222/3333/4444/5555</div>
+      <div style="font-size:10px;color:#5F5E5A;margin-top:16px">กรุณาติดต่อผู้ดูแลระบบเพื่อขอรหัสผ่านค่ะ</div>
     </div>`;
   }
   return `
@@ -566,9 +570,18 @@ async function doCheckOut(){
   const s=staffList.find(x=>x.id===me.id);
   if(s){s.checkOut=timeStr;s.status="เลิกงานแล้ว";}
   state.syncing=true;render();
-  const photoUrl=await uploadPhoto(dataURLtoFile(state.checkOutPhoto,"checkout.jpg"));
-  await sendToSheets("checkOut",{date:now.toISOString().slice(0,10),name:me.name,checkOutTime:timeStr,status:"เลิกงานแล้ว",photoUrl:photoUrl||""});
-  state.syncing=false;render();
+  const file=dataURLtoFile(state.checkOutPhoto,"checkout.jpg");
+  const photoUrl=await uploadPhoto(file);
+  await sendToSheets("checkOut",{
+    date:now.toISOString().slice(0,10),
+    name:me.name,
+    checkOutTime:timeStr,
+    status:"เลิกงานแล้ว",
+    photoUrl:photoUrl||""
+  });
+  state.syncing=false;
+  state.checkOutPhoto=null;
+  render();
 }
 
 function openTask(id){
