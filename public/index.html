@@ -77,26 +77,53 @@ function fmtISO(d){const off=7*60,loc=new Date(d.getTime()+off*60000);return loc
 // ✅ reset ตี 3:30 — เช็คว่าถึงเวลา reset หรือยัง
 // วันที่ใช้บันทึก = วันปฏิทินจริง (fmtISO ปกติ)
 // แต่ reload เมื่อ: วันปฏิทินเปลี่ยน หรือ เวลาถึง 03:30 (ถ้าวันนี้ยังไม่ได้ reset)
-let _lastResetDate=fmtISO(thaiNow()); // วันที่ reset ล่าสุด
+// ── ฟังก์ชัน reset ข้อมูลทั้งวัน (เรียกตี 3:30) ─────────────
+async function autoResetAtNight(){
+  // บันทึกว่า reset วันไหนแล้ว ป้องกัน reset ซ้ำ
+  const resetKey=`mori_reset_${todayISO}`;
+  if(localStorage.getItem(resetKey)==="done"){return;}
+  console.log("🔄 Auto reset ตี 3:30 สำหรับวัน",todayISO);
+  try{
+    // ลบ Firebase nodes ของวันนี้
+    await fbDel(`tasks/${todayISO}`);
+    await fbDel(`catHealth/${todayISO}`);
+    await fbDel(`damageLogs/${todayISO}`);
+    await fbDel(`kittenLogs/${todayISO}`);
+    await fbDel(`taskExtra/${todayISO}`);
+    await fbDel(`attendance/${todayISO}`);
+    // reset weekly ถ้าวันอาทิตย์
+    if(todayDow===0) await fbDel(`weeklyTasks/${weekISO}`);
+    localStorage.setItem(resetKey,"done");
+    console.log("✅ Auto reset เสร็จแล้ว");
+  }catch(e){
+    console.error("reset error",e);
+  }
+}
 
 let _clockInt=null;
 function startClock(){
   if(_clockInt)return;
   _clockInt=setInterval(()=>{
     const now=thaiNow();
-    ["liveClock","liveClock2"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmtTime(now);});
+    ["liveClock","liveClock2"].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.textContent=fmtTime(now);
+    });
     const currentDate=fmtISO(now);
     const h=now.getHours(),m=now.getMinutes();
-    // reload ถ้า: วันปฏิทินเปลี่ยน หรือ ถึงตี 3:30 แล้วยังไม่ได้ reset วันนี้
-    const isResetTime=(h===3&&m>=30)||h>3;
-    const needReset=currentDate!==todayISO||(isResetTime&&currentDate===todayISO&&_lastResetDate!==currentDate+"_reset");
+
+    // ✅ ถ้าวันปฏิทินเปลี่ยน → reload
     if(currentDate!==todayISO){
-      // วันปฏิทินเปลี่ยน (เที่ยงคืน) — reload เสมอ
-      location.reload();
-    } else if(isResetTime&&_lastResetDate!==currentDate+"_done"){
-      // ตี 3:30+ และยังไม่ได้ reload วันนี้
-      _lastResetDate=currentDate+"_done";
-      location.reload();
+      location.reload();return;
+    }
+
+    // ✅ ถ้าตี 3:30+ และยังไม่ได้ reset วันนี้ → reset แล้ว reload
+    if((h===3&&m>=30)||h>3){
+      const resetKey=`mori_reset_${todayISO}`;
+      if(localStorage.getItem(resetKey)!=="done"){
+        autoResetAtNight().then(()=>{
+          setTimeout(()=>location.reload(),2000);
+        });
+      }
     }
   },30000);
 }
@@ -123,9 +150,21 @@ const ROUNDS=[
   {time:"12:30",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
   {time:"14:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
   {time:"16:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
-  {time:"18:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  // ✅ เพิ่ม ปิดแอร์ 18:00
+  {time:"18:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง","ปิดแอร์"]},
+  // ✅ เพิ่ม เปิดแอร์ 19:10
+  {time:"19:10",tasks:["เปิดแอร์"]},
   {time:"20:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็คสต็อครายวัน (ครัว)","เช็คสต็อครายวัน (ห้องแมว)","เช็คสต็อครายวัน (บาร์น้ำ)","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
-  {time:"22:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]}
+  {time:"22:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  // ✅ เพิ่ม รอบ 01:30 ทำความสะอาดห้องคาเฟ่หลังเก็บแมว
+  {time:"01:30",tasks:[
+    "ดูดฝุ่น ถูพื้น กลิ้งขน (ห้องคาเฟ่หลังเก็บแมว)",
+    "เช็ดฝาโดม กระบะทราย",
+    "เช็ดผนังห้องคาเฟ่",
+    "เช็ดโต๊ะทุกตัว (ห้องคาเฟ่)",
+    "เช็ดคอนโดแมว",
+    "ดูแลของเล่นแมว / จัดเก็บ"
+  ]}
 ];
 
 const DAILY_NAMES=["ทำความสะอาดแมวที่ปล่อยห้องคาเฟ่","ทำความสะอาดห้องแมวเล็กรอบแรก","เช็ดตา หู หวีขน แมวในห้องเล็ก","เช็ดกระจกด้านในห้องคาเฟ่","เช็ดกระจกด้านนอกรอบร้านทุกบาน","กวาดหน้าร้าน รวมบนศาล","เติมน้ำไหว้ศาล","กวาดบริเวณกรวยหน้าร้าน","เช็ดโต๊ะหน้าร้าน","รดน้ำต้นไม้ และทิ้งขยะข้างร้าน","เช็ดโต๊ะข้างร้าน","กวาดข้างร้าน","เปิดหน้าร้าน","ปิดหน้าร้าน","ทำความสะอาดห้องน้ำ","ทำความสะอาดห้องแมวเล็กรอบเย็น","เช็คสต็อกของ","ป้อนยาแมว"];
@@ -1228,7 +1267,55 @@ async function saveKitten(id){
   ST.syncing=false;addN(`🍼 บันทึกลูกแมว ${k?.name||id} แล้ว`);render();
 }
 
-// ── Reset functions ทุกอันมี confirm ──────────────────────────
+// ✅ รีเซ็ตเช็คอิน/เอาต์วันนี้ทุกคน (Firebase node ลบ แต่ GAS Sheet ยังอยู่)
+async function resetAttendanceToday(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตเช็คอิน/เช็คเอาต์วันนี้ทุกคน?\n\n"+
+    "• พนักงานทุกคนจะกลับเป็น 'ยังไม่เข้างาน'\n"+
+    "• ต้องเช็คอินใหม่ทุกคน\n"+
+    "• ประวัติใน Google Sheet ยังคงอยู่ครบถ้วน\n"+
+    "• ไม่กระทบข้อมูลค่าแรงที่บันทึกไปแล้ว"
+  ))return;
+  ST.syncing=true;render();
+  // ลบเฉพาะ Firebase realtime — Sheet ไม่แตะ
+  await fbDel(`attendance/${todayISO}`);
+  // reset local state
+  STAFF.forEach(s=>{
+    s.checkIn=null;s.checkOut=null;
+    s.status="ยังไม่เข้างาน";
+    s.checkInPhoto=null;s.checkOutPhoto=null;
+  });
+  ST.checkInPhoto=null;ST.checkOutPhoto=null;
+  ST.syncing=false;
+  addN("🔄 รีเซ็ตเช็คอิน/เช็คเอาต์ทุกคนแล้ว — ประวัติ Sheet ยังอยู่ครบ");
+  render();
+}
+
+// ✅ รีเซ็ตเช็คอิน/เอาต์เฉพาะตัวเอง
+async function resetMyAttendance(){
+  const me=ST.loginUser;
+  if(!me)return;
+  if(!confirm(
+    `⚠️ ยืนยันรีเซ็ตเช็คอิน/เช็คเอาต์ของ ${me.name}?\n\n`+
+    "• คุณจะกลับเป็น 'ยังไม่เข้างาน'\n"+
+    "• ต้องเช็คอินใหม่อีกครั้ง\n"+
+    "• ประวัติใน Google Sheet ยังคงอยู่\n"+
+    "• ใช้เมื่อเช็คอินผิดหรือต้องการแก้ไขเท่านั้น"
+  ))return;
+  ST.syncing=true;render();
+  // ลบเฉพาะ node ของตัวเอง
+  await fbDel(`attendance/${todayISO}/${me.name}`);
+  const s=STAFF.find(x=>x.id===me.id);
+  if(s){
+    s.checkIn=null;s.checkOut=null;
+    s.status="ยังไม่เข้างาน";
+    s.checkInPhoto=null;s.checkOutPhoto=null;
+  }
+  ST.checkInPhoto=null;ST.checkOutPhoto=null;
+  ST.syncing=false;
+  addN(`🔄 รีเซ็ตเช็คอิน/เช็คเอาต์ของ ${me.name} แล้ว — ประวัติ Sheet ยังอยู่`);
+  render();
+}
 
 async function resetTodayTasks(){
   if(!confirm(
@@ -1553,8 +1640,22 @@ function exportCSV(){
   a.click();
 }
 
+// BOOT — ตรวจ reset ตั้งแต่ตอนโหลด
 document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🐱</div><div style="font-size:13px;color:#5F5E5A;margin-top:8px">กำลังโหลด...</div></div>`;
-loadState();
+
+// ✅ ตรวจตอนเปิดแอป: ถ้าเลยตี 3:30 แล้วยังไม่ได้ reset → reset ก่อน loadState
+async function bootWithReset(){
+  const now=thaiNow();
+  const h=now.getHours(),m=now.getMinutes();
+  const resetKey=`mori_reset_${todayISO}`;
+  const pastResetTime=(h===3&&m>=30)||(h>3&&h<12); // ตี 3:30 ถึงเที่ยง = ช่วงวันใหม่
+  if(pastResetTime && localStorage.getItem(resetKey)!=="done"){
+    document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🔄</div><div style="font-size:13px;color:#993556;margin-top:8px;font-weight:500">กำลังเริ่มวันใหม่...</div><div style="font-size:11px;color:#888780;margin-top:4px">รีเซ็ตข้อมูลตี 3:30</div></div>`;
+    await autoResetAtNight();
+  }
+  loadState();
+}
+bootWithReset();
 </script>
 </body>
 </html>
