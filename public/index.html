@@ -376,10 +376,12 @@ function main(){
       </div>
       <div class="sec">👤 สถานะพนักงาน</div>
       ${STAFF.map(s=>{
+        // ✅ แสดงงานเลยเวลาทั้งหมด ไม่ว่าจะเช็คเอาต์แล้วหรือยัง
         const lateTasks=allTasks().filter(t=>t.assignee===s.name&&t.status==="ยังไม่ทำ"&&isTimePast(t.deadline));
-        const dispSt=lateTasks.length>0&&s.checkIn&&!s.checkOut?"งานเลยเวลา":s.status;
+        const hasLate=lateTasks.length>0&&s.checkIn;
+        const dispSt=hasLate&&!s.checkOut?"งานเลยเวลา":s.status;
         const canViewPhoto=(isAdmin&&s.role==="staff")||(me.id===s.id);
-        return`<div class="card" style="border-left:3px solid ${dispSt==="มาสาย"?"#D85A30":dispSt==="เข้างานแล้ว"?"#639922":dispSt==="เลิกงานแล้ว"?"#185FA5":dispSt==="งานเลยเวลา"?"#A32D2D":"#E8E3DA"}">
+        return`<div class="card" style="border-left:3px solid ${dispSt==="มาสาย"?"#D85A30":dispSt==="เข้างานแล้ว"?"#639922":dispSt==="เลิกงานแล้ว"?"#185FA5":hasLate?"#A32D2D":"#E8E3DA"}">
           <div style="display:flex;align-items:center;gap:10px">
             <div class="av" style="width:36px;height:36px;font-size:12px">${s.avatar}</div>
             <div style="flex:1">
@@ -389,7 +391,10 @@ function main(){
             </div>
             <span class="badge" style="${bc(dispSt)}">${dispSt}</span>
           </div>
-          ${lateTasks.length>0&&s.checkIn&&!s.checkOut?`<div style="background:#FCEBEB;border-radius:8px;padding:6px 8px;margin-top:6px">${lateTasks.map(t=>`<div style="font-size:10px;color:#A32D2D">⚠️ ${t.name} (กำหนด ${t.deadline})</div>`).join("")}</div>`:""}
+          ${hasLate?`<div style="background:#FCEBEB;border-radius:8px;padding:6px 8px;margin-top:6px">
+            <div style="font-size:10px;color:#A32D2D;font-weight:500;margin-bottom:3px">⚠️ งานไม่ได้ทำ ${lateTasks.length} รายการ${s.checkOut?" (เลิกงานแล้ว)":""}</div>
+            ${lateTasks.map(t=>`<div style="font-size:10px;color:#A32D2D">• ${t.name} (${t.deadline})</div>`).join("")}
+          </div>`:""}
         </div>`;}).join("")}
       ${isAdmin&&pendingT.length>0?`<div class="sec">✅ งานรอตรวจ (${pendingT.length})</div>${pendingT.slice(0,5).map(t=>`<div class="card" onclick="openT('${t.id}')" style="cursor:pointer"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:12px;font-weight:500">${t.name}</div><div style="font-size:10px;color:#5F5E5A">${t.assignee} · ส่ง ${t.submittedAt||""}</div></div><div style="display:flex;gap:5px"><button onclick="event.stopPropagation();appT('${t.id}')" class="badge" style="${bc("ผ่าน")};border:none;cursor:pointer;padding:5px 8px">✓</button><button onclick="event.stopPropagation();rejT('${t.id}')" class="badge" style="${bc("ตีกลับ")};border:none;cursor:pointer;padding:5px 8px">✗</button></div></div></div>`).join("")}`:""}
       ${isAdmin&&pendingCats.length>0?`<div class="sec">🐱 แมวรอตรวจ (${pendingCats.length})</div>${pendingCats.slice(0,4).map(([cat,l])=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:12px;font-weight:500">🐱 ${cat}</div><div style="font-size:10px;color:#5F5E5A">${l.recordedBy||""} · ${l.time||""}${l.abnormal?" · ⚠️":""}</div></div><div style="display:flex;gap:5px"><button onclick="approveCat('${cat}')" class="badge" style="${bc("ผ่าน")};border:none;cursor:pointer;padding:5px 8px">✓</button><button onclick="rejectCat('${cat}')" class="badge" style="${bc("ตีกลับ")};border:none;cursor:pointer;padding:5px 8px">✗</button></div></div>`).join("")}`:""}
@@ -547,7 +552,7 @@ function main(){
   else if(ST.tab==="report"){
     const allLeaves=ST.leaveRequests;
     content=`<div class="pad">
-      <div class="tabs">${[["daily","วันนี้"],["weekly_r","สัปดาห์"],["leave","การลา"],["fine","ค่าปรับ"],["score","คะแนน"]].map(([k,l])=>`<button class="tab ${ST.reportTab===k?"active":""}" onclick="ST.reportTab='${k}';render()">${l}</button>`).join("")}</div>
+      <div class="tabs">${[["daily","วันนี้"],["issues","⚠️งานค้าง"],["weekly_r","สัปดาห์"],["leave","การลา"],["fine","ค่าปรับ"],["score","คะแนน"]].map(([k,l])=>`<button class="tab ${ST.reportTab===k?"active":""}" onclick="ST.reportTab='${k}';render()">${l}</button>`).join("")}</div>
       ${ST.reportTab==="daily"?`
         <div class="sec">สรุปงานวันนี้</div>
         ${[["รอบงาน","🔄",tStat(TASKS)],["รายวัน","📝",tStat(DAILY_TASKS)],["บาริสต้า","☕",tStat(BARISTA_TASKS)],["ห้องน้ำ","🚿",tStat(BATHROOM_TASKS)],["ห้องครัว","🍳",tStat(KITCHEN_TASKS)],["เพ้นท์","🎨",tStat([...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS])],["รายสัปดาห์","📅",tStat(WEEKLY_TODAY)]].map(([lb,emoji,s])=>`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:500">${emoji} ${lb}</span><span style="font-size:11px;color:#5F5E5A">${s.done}/${s.total}</span></div><div class="pb2" style="margin-bottom:8px"><div class="pf" style="width:${s.total?Math.round(s.done/s.total*100):0}%"></div></div><div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge" style="background:#F1EFE8;color:#888780">ยังไม่ทำ ${s.todo}</span><span class="badge" style="background:#FAEEDA;color:#BA7517">รอตรวจ ${s.pending}</span><span class="badge" style="background:#EAF3DE;color:#639922">ผ่าน ${s.done}</span>${s.late>0?`<span class="badge" style="background:#FCEBEB;color:#A32D2D">เลยเวลา ${s.late}</span>`:""}</div></div>`).join("")}
@@ -590,6 +595,45 @@ function main(){
           <div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:500"><span>ยอดสุทธิ</span><span style="color:${net>0?"#639922":"#A32D2D"}">฿${net}</span></div></div>
           ${isAdmin?`<button onclick="openFineModal('${s.name}','จัดการค่าตอบแทน',${w})" class="btn" style="background:#FAEEDA;color:#BA7517;margin-top:8px;padding:8px;font-size:12px">⚖️ จัดการค่าปรับ / โบนัส</button>`:""}
         </div>`;}).join("")}`:""}
+      ${ST.reportTab==="issues"?`
+        <div class="sec">⚠️ งานไม่ได้ทำ / เลยเวลา วันนี้</div>
+        ${STAFF.filter(s=>s.role==="staff").map(s=>{
+          const prob=allTasks().filter(t=>t.assignee===s.name&&(
+            (t.status==="ยังไม่ทำ"&&isTimePast(t.deadline))||
+            t.status==="ตีกลับ"
+          ));
+          if(!prob.length)return`<div class="card" style="border-left:3px solid #639922"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:32px;height:32px;font-size:11px">${s.avatar}</div><div style="font-size:13px;font-weight:500;color:#639922">${s.name} ✓ ไม่มีงานค้าง</div></div></div>`;
+          return`<div class="card" style="border-left:3px solid #A32D2D">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div class="av" style="width:32px;height:32px;font-size:11px">${s.avatar}</div>
+              <div><div style="font-size:13px;font-weight:500">${s.name}</div>
+              <div style="font-size:11px;color:#A32D2D">${prob.length} รายการที่ต้องแก้ไข</div></div>
+            </div>
+            ${prob.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:.5px solid #F1EFE8">
+              <div style="flex:1"><div style="font-size:11px">${t.name}</div>
+              <div style="font-size:10px;color:#5F5E5A">${t.round||t.category||""} ${t.deadline&&t.deadline!=="ก่อนเลิกงาน"?`· ⏰${t.deadline}`:""}</div></div>
+              <span class="badge" style="${bc(t.status==="ตีกลับ"?"ตีกลับ":"เลยเวลา")}">${t.status==="ตีกลับ"?"ตีกลับ":"เลยเวลา"}</span>
+            </div>`).join("")}
+          </div>`;}).join("")}
+        <div class="sec">📊 สรุปภาพรวมวันนี้</div>
+        ${(()=>{
+          const allT=allTasks();
+          const done=allT.filter(t=>t.status==="ผ่าน").length;
+          const pending=allT.filter(t=>t.status==="รอตรวจ").length;
+          const late=allT.filter(t=>t.status==="ยังไม่ทำ"&&isTimePast(t.deadline)).length;
+          const rej=allT.filter(t=>t.status==="ตีกลับ").length;
+          const total=allT.length;
+          const pct=total?Math.round(done/total*100):0;
+          return`<div class="card">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-weight:500">งานทั้งหมดวันนี้</span><span style="font-size:13px;font-weight:500;color:${pct>=80?"#639922":pct>=50?"#BA7517":"#A32D2D"}">${pct}%</span></div>
+            <div class="pb2" style="height:8px;margin-bottom:12px"><div class="pf" style="width:${pct}%;background:${pct>=80?"#639922":pct>=50?"#BA7517":"#A32D2D"}"></div></div>
+            <div class="g3" style="margin-bottom:0">
+              <div style="background:#EAF3DE;border-radius:8px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:500;color:#639922">${done}</div><div style="font-size:9px;color:#639922">ผ่าน</div></div>
+              <div style="background:#FAEEDA;border-radius:8px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:500;color:#BA7517">${pending}</div><div style="font-size:9px;color:#BA7517">รอตรวจ</div></div>
+              <div style="background:#FCEBEB;border-radius:8px;padding:8px;text-align:center"><div style="font-size:20px;font-weight:500;color:#A32D2D">${late+rej}</div><div style="font-size:9px;color:#A32D2D">ค้าง/ตีกลับ</div></div>
+            </div>
+          </div>`;})()}
+      `:""}
       ${ST.reportTab==="score"?`
         <div class="sec">คะแนนพนักงาน</div>
         ${STAFF.filter(s=>s.role==="staff").sort((a,b)=>b.score-a.score).map((s,i)=>{const lc=s.level==="Gold"?"#BA7517":"#888780",lb=s.level==="Gold"?"#FAEEDA":"#D3D1C7";return`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="width:28px;height:28px;border-radius:50%;background:${lb};display:flex;align-items:center;justify-content:center;font-weight:500;font-size:13px;color:${lc}">${i+1}</div><div class="av" style="width:36px;height:36px;font-size:13px">${s.avatar}</div><div style="flex:1"><div style="font-weight:500">${s.name}</div><div class="pb2" style="margin:4px 0 0"><div class="pf" style="width:${s.score}%;background:${lc}"></div></div></div><div style="text-align:right"><div style="font-size:20px;font-weight:500;color:${lc}">${s.score}</div><span class="badge" style="background:${lb};color:${lc}">${s.level}</span></div></div></div>`;}).join("")}`:""}
@@ -733,10 +777,9 @@ function main(){
     const lateTasks=allTasks().filter(t=>t.assignee===fm.name&&t.status==="ยังไม่ทำ"&&isTimePast(t.deadline));
     const autoLateFine=isLate?ST.settings.lateFine:0;
     const autoTaskFine=lateTasks.length*ST.settings.noTaskFine;
-    const lf=fd.status==="อนุโลม"?0:(fd.lateFine!==undefined?fd.lateFine:autoLateFine);
-    const tf=fd.status==="อนุโลม"?0:(fd.taskFine!==undefined?fd.taskFine:autoTaskFine);
-    const bonus=fd.bonus||0;const extra=fd.extra||0;
-    const net=Math.max(0,w-lf-tf+bonus+extra);
+    const lf=fd.status==="อนุโลม"?0:fd.lateFine;
+    const tf=fd.status==="อนุโลม"?0:fd.taskFine;
+    const net=Math.max(0,w-lf-tf+(fd.bonus||0)+(fd.extra||0));
     modal=`<div class="modal" onclick="if(event.target===this){ST.fineModal=null;render()}"><div class="mc">
       <div style="font-weight:500;font-size:15px;margin-bottom:4px">⚖️ จัดการค่าตอบแทน</div>
       <div style="font-size:12px;color:#5F5E5A;margin-bottom:12px">${fm.name} · ค่าแรงมาตรฐาน ฿${w}/วัน</div>
@@ -748,38 +791,41 @@ function main(){
       </div>
       <div class="sec">การตัดสินใจ</div>
       <div class="mr" style="margin-bottom:12px">
-        <button class="btn" style="background:${fd.status==="หักค่าปรับ"?"#FCEBEB":"#F1EFE8"};color:${fd.status==="หักค่าปรับ"?"#A32D2D":"#888780"}" onclick="ST.fineData.status='หักค่าปรับ';render()">✗ หักค่าปรับ</button>
-        <button class="btn" style="background:${fd.status==="อนุโลม"?"#E6F1FB":"#F1EFE8"};color:${fd.status==="อนุโลม"?"#185FA5":"#888780"}" onclick="ST.fineData.status='อนุโลม';render()">✓ อนุโลม</button>
+        <button class="btn" style="background:${fd.status==="หักค่าปรับ"?"#FCEBEB":"#F1EFE8"};color:${fd.status==="หักค่าปรับ"?"#A32D2D":"#888780"}" onclick="setFineStatus('หักค่าปรับ')">✗ หักค่าปรับ</button>
+        <button class="btn" style="background:${fd.status==="อนุโลม"?"#E6F1FB":"#F1EFE8"};color:${fd.status==="อนุโลม"?"#185FA5":"#888780"}" onclick="setFineStatus('อนุโลม')">✓ อนุโลม</button>
       </div>
       <div class="sec">ค่าปรับ</div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin-bottom:6px">
-        <input type="number" placeholder="฿0" value="${lf}" ${fd.status==="อนุโลม"?"disabled":""} oninput="ST.fineData.lateFine=Number(this.value);render()"/>
+        <input id="fLateFine" type="number" placeholder="฿0" value="${fd.lateFine}" ${fd.status==="อนุโลม"?"disabled":""} oninput="ST.fineData.lateFine=Number(this.value);updateFineSummary()"/>
         <span style="font-size:11px;color:#5F5E5A;white-space:nowrap">มาสาย</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin-bottom:12px">
-        <input type="number" placeholder="฿0" value="${tf}" ${fd.status==="อนุโลม"?"disabled":""} oninput="ST.fineData.taskFine=Number(this.value);render()"/>
+        <input id="fTaskFine" type="number" placeholder="฿0" value="${fd.taskFine}" ${fd.status==="อนุโลม"?"disabled":""} oninput="ST.fineData.taskFine=Number(this.value);updateFineSummary()"/>
         <span style="font-size:11px;color:#5F5E5A;white-space:nowrap">งานเลยเวลา</span>
       </div>
       <div class="sec">โบนัส / รายได้พิเศษ</div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin-bottom:6px">
-        <input type="number" placeholder="฿0" value="${bonus}" oninput="ST.fineData.bonus=Number(this.value);render()"/>
+        <input id="fBonus" type="number" placeholder="฿0" value="${fd.bonus||0}" oninput="ST.fineData.bonus=Number(this.value);updateFineSummary()"/>
         <span style="font-size:11px;color:#5F5E5A;white-space:nowrap">คอมมิสชั่น</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin-bottom:12px">
-        <input type="number" placeholder="฿0" value="${extra}" oninput="ST.fineData.extra=Number(this.value);render()"/>
+        <input id="fExtra" type="number" placeholder="฿0" value="${fd.extra||0}" oninput="ST.fineData.extra=Number(this.value);updateFineSummary()"/>
         <span style="font-size:11px;color:#5F5E5A;white-space:nowrap">ค่าแรงพิเศษ</span>
       </div>
       <textarea id="fNote" placeholder="หมายเหตุ..." style="margin-bottom:12px;height:50px"></textarea>
-      <div style="background:${net>=w?"#EAF3DE":net>0?"#FAEEDA":"#FCEBEB"};border-radius:12px;padding:12px;margin-bottom:12px">
+      <!-- ✅ สรุป real-time ผ่าน id แทน re-render -->
+      <div id="fineSummaryBox" style="background:${net>=w?"#EAF3DE":net>0?"#FAEEDA":"#FCEBEB"};border-radius:12px;padding:12px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:500;margin-bottom:6px">💰 สรุปค่าตอบแทนวันนี้</div>
         <div style="font-size:11px">
           <div style="display:flex;justify-content:space-between;padding:2px 0"><span>ค่าแรงมาตรฐาน</span><span>฿${w}</span></div>
           <div style="display:flex;justify-content:space-between;padding:2px 0;color:#A32D2D"><span>หักมาสาย</span><span>- ฿${lf}</span></div>
           <div style="display:flex;justify-content:space-between;padding:2px 0;color:#A32D2D"><span>หักงานเลยเวลา</span><span>- ฿${tf}</span></div>
-          ${bonus>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#639922"><span>+ คอมมิสชั่น</span><span>฿${bonus}</span></div>`:""}
-          ${extra>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#639922"><span>+ ค่าแรงพิเศษ</span><span>฿${extra}</span></div>`:""}
-          ${fd.status==="อนุโลม"?`<div style="font-size:10px;color:#185FA5;margin-top:3px">✓ อนุโลมค่าปรับ</div>`:""}
-          <div style="display:flex;justify-content:space-between;padding:5px 0 0;border-top:.5px solid rgba(0,0,0,.1);margin-top:4px;font-size:14px;font-weight:600"><span>ยอดสุทธิ</span><span style="color:${net>0?"#639922":"#A32D2D"}">฿${net}</span></div>
+          ${(fd.bonus||0)>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#639922"><span>+ คอมมิสชั่น</span><span>฿${fd.bonus}</span></div>`:""}
+          ${(fd.extra||0)>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#639922"><span>+ ค่าแรงพิเศษ</span><span>฿${fd.extra}</span></div>`:""}
+          ${fd.status==="อนุโลม"?`<div style="font-size:10px;color:#185FA5;margin-top:3px">✓ อนุโลมค่าปรับทั้งหมด</div>`:""}
+          <div style="display:flex;justify-content:space-between;padding:5px 0 0;border-top:.5px solid rgba(0,0,0,.1);margin-top:4px;font-size:14px;font-weight:600">
+            <span>ยอดสุทธิ</span><span style="color:${net>0?"#639922":"#A32D2D"}">฿${net}</span>
+          </div>
         </div>
       </div>
       <button class="btn" style="background:#993556;color:#fff;margin-top:0" onclick="saveFine()">💾 บันทึกการตัดสินใจ</button>
@@ -986,18 +1032,72 @@ function openFineModal(name,type,orig){
   const isLate=STAFF.find(x=>x.name===name)?.status==="มาสาย";
   const lateTasks=allTasks().filter(t=>t.assignee===name&&t.status==="ยังไม่ทำ"&&isTimePast(t.deadline));
   ST.fineModal={name,fineType:type,fineOriginal:orig};
-  ST.fineData={status:"",lateFine:isLate?ST.settings.lateFine:0,taskFine:lateTasks.length*ST.settings.noTaskFine,bonus:0,extra:0,note:""};
+  ST.fineData={
+    status:"",
+    lateFine:isLate?ST.settings.lateFine:0,
+    taskFine:lateTasks.length*ST.settings.noTaskFine,
+    bonus:0,extra:0,note:""
+  };
   render();
+}
+// ✅ แก้: ใช้ global functions แทน oninput inline เพื่อป้องกัน re-render ล้างค่า
+function setFineField(key,val){
+  ST.fineData[key]=isNaN(Number(val))?val:Number(val);
+  // อัปเดตแค่ summary box ไม่ re-render ทั้งหมด
+  updateFineSummary();
+}
+function setFineStatus(status){
+  ST.fineData.status=status;
+  render(); // ต้อง re-render เพราะ UI เปลี่ยน (ปุ่ม active/disabled)
+}
+function updateFineSummary(){
+  const fd=ST.fineData;
+  const fm=ST.fineModal;if(!fm)return;
+  const u=USERS.find(x=>x.name===fm.name);const w=u?.wage||0;
+  const lf=fd.status==="อนุโลม"?0:(Number(document.getElementById("fLateFine")?.value)||fd.lateFine||0);
+  const tf=fd.status==="อนุโลม"?0:(Number(document.getElementById("fTaskFine")?.value)||fd.taskFine||0);
+  const bonus=Number(document.getElementById("fBonus")?.value)||fd.bonus||0;
+  const extra=Number(document.getElementById("fExtra")?.value)||fd.extra||0;
+  const net=Math.max(0,w-lf-tf+bonus+extra);
+  const el=document.getElementById("fineSummaryBox");
+  if(!el)return;
+  const color=net>=w?"#EAF3DE":net>0?"#FAEEDA":"#FCEBEB";
+  el.style.background=color;
+  el.innerHTML=`
+    <div style="font-size:12px;font-weight:500;margin-bottom:6px">💰 สรุปค่าตอบแทนวันนี้</div>
+    <div style="font-size:11px">
+      <div style="display:flex;justify-content:space-between;padding:2px 0"><span>ค่าแรงมาตรฐาน</span><span>฿${w}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0;color:#A32D2D"><span>หักมาสาย</span><span>- ฿${fd.status==="อนุโลม"?0:lf}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0;color:#A32D2D"><span>หักงานเลยเวลา</span><span>- ฿${fd.status==="อนุโลม"?0:tf}</span></div>
+      ${bonus>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#639922"><span>+ คอมมิสชั่น</span><span>฿${bonus}</span></div>`:""}
+      ${extra>0?`<div style="display:flex;justify-content:space-between;padding:2px 0;color:#639922"><span>+ ค่าแรงพิเศษ</span><span>฿${extra}</span></div>`:""}
+      ${fd.status==="อนุโลม"?`<div style="font-size:10px;color:#185FA5;margin-top:3px">✓ อนุโลมค่าปรับทั้งหมด</div>`:""}
+      <div style="display:flex;justify-content:space-between;padding:5px 0 0;border-top:.5px solid rgba(0,0,0,.1);margin-top:4px;font-size:14px;font-weight:600">
+        <span>ยอดสุทธิ</span><span style="color:${net>0?"#639922":"#A32D2D"}">฿${net}</span>
+      </div>
+    </div>`;
 }
 async function saveFine(){
   const fm=ST.fineModal;if(!fm)return;
-  const fd=ST.fineData;const note=document.getElementById("fNote")?.value||"";
+  const fd=ST.fineData;
+  // อ่านค่าจาก input โดยตรง (ป้องกัน state ไม่อัปเดต)
+  const lf2=fd.status==="อนุโลม"?0:(Number(document.getElementById("fLateFine")?.value)||fd.lateFine||0);
+  const tf2=fd.status==="อนุโลม"?0:(Number(document.getElementById("fTaskFine")?.value)||fd.taskFine||0);
+  const bonus2=Number(document.getElementById("fBonus")?.value)||0;
+  const extra2=Number(document.getElementById("fExtra")?.value)||0;
+  const note=document.getElementById("fNote")?.value||"";
   const u=USERS.find(x=>x.name===fm.name);const w=u?.wage||0;
-  const lf=fd.status==="อนุโลม"?0:(fd.lateFine||0);const tf=fd.status==="อนุโลม"?0:(fd.taskFine||0);
-  const bonus=fd.bonus||0;const extra=fd.extra||0;const net=Math.max(0,w-lf-tf+bonus+extra);
-  await gasPost("fineDecision",{date:todayISO,name:fm.name,fineType:fm.fineType,fineOriginal:fm.fineOriginal,baseWage:w,lateFine:lf,taskFine:tf,fineAmount:lf+tf,bonus,extra,netWage:net,fineStatus:fd.status||"บันทึกแล้ว",fineNote:note,decidedBy:ST.loginUser.name});
-  addN(`💰 ${fm.name}: ${fd.status==="อนุโลม"?"อนุโลมค่าปรับ":`หักค่าปรับ ฿${lf+tf}`}${bonus>0?` + โบนัส ฿${bonus}`:""}${extra>0?` + พิเศษ ฿${extra}`:""} | ยอดสุทธิ ฿${net}`);
-  ST.fineModal=null;render();
+  const net=Math.max(0,w-lf2-tf2+bonus2+extra2);
+  await gasPost("fineDecision",{
+    date:todayISO,name:fm.name,fineType:fm.fineType,fineOriginal:fm.fineOriginal,
+    baseWage:w,lateFine:lf2,taskFine:tf2,fineAmount:lf2+tf2,
+    bonus:bonus2,extra:extra2,netWage:net,
+    fineStatus:fd.status||"บันทึกแล้ว",fineNote:note,decidedBy:ST.loginUser.name
+  });
+  addN(`💰 ${fm.name}: ${fd.status==="อนุโลม"?"อนุโลมค่าปรับ":`หักค่าปรับ ฿${lf2+tf2}`}${bonus2>0?` + โบนัส ฿${bonus2}`:""}${extra2>0?` + พิเศษ ฿${extra2}`:""} | ยอดสุทธิ ฿${net}`);
+  // ✅ ปิด modal อัตโนมัติ
+  ST.fineModal=null;
+  render();
 }
 
 async function subLeave(){const type=document.getElementById("lType")?.value,reason=document.getElementById("lReason")?.value;const id=`leave_${Date.now()}`;await fbSet(`leaveRequests/${id}`,{id,name:ST.loginUser.name,type,reason,date:todayISO,status:"รออนุมัติ"});await gasPost("leaveRequest",{date:todayISO,name:ST.loginUser.name,type,reason});ST.leaveModal=false;addN(`${ST.loginUser.name} ยื่นคำขอ: ${type}`);render();}
@@ -1078,18 +1178,241 @@ async function saveSettings(){await fbSet(`settings/appSettings`,{...ST.settings
 async function reqNotifPerm(){if(!("Notification" in window)){alert("เบราว์เซอร์นี้ไม่รองรับ");return;}const p=await Notification.requestPermission();if(p==="granted"){new Notification("🐱 Mori Staff Check",{body:"เปิดใช้การแจ้งเตือนแล้วค่ะ!"});}render();}
 
 function exportCSV(){
-  const allT=allTasks();const rows=[];
-  rows.push([`=== สรุปประจำวัน ${todayISO} ===`]);rows.push([]);
-  rows.push(["=== สถานะพนักงาน ==="]);
-  rows.push(["ชื่อ","ค่าแรง/วัน","เข้างาน","เลิกงาน","สถานะ","ค่าปรับมาสาย(฿)","ค่าปรับงานเลย(฿)","ยอดสุทธิ(฿)"]);
-  STAFF.filter(s=>s.role==="staff").forEach(s=>{const u=USERS.find(x=>x.id===s.id),w=u?.wage||0;const isLate=s.status==="มาสาย",lf=isLate?ST.settings.lateFine:0;const tf=allT.filter(t=>t.assignee===s.name&&t.status==="ยังไม่ทำ"&&isTimePast(t.deadline)).length*ST.settings.noTaskFine;const net=s.checkIn?Math.max(0,w-lf-tf):0;rows.push([s.name,w,s.checkIn||"ไม่มา",s.checkOut||"—",s.status,lf,tf,net]);});
-  rows.push([]);
-  [["รอบงาน","🔄",TASKS],["รายวัน","📝",DAILY_TASKS],["บาริสต้า","☕",BARISTA_TASKS],["ห้องน้ำ","🚿",BATHROOM_TASKS],["ห้องครัว","🍳",KITCHEN_TASKS],["เพ้นท์","🎨",[...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS]],["รายสัปดาห์","📅",WEEKLY_TODAY]].forEach(([nm,em,tasks])=>{const s=tStat(tasks);rows.push([`=== ${em} ${nm} === ผ่าน:${s.done}/${s.total} รอตรวจ:${s.pending} ยังไม่ทำ:${s.todo} เลยเวลา:${s.late}`]);rows.push(["ชื่องาน","ผู้รับผิดชอบ","กำหนด","เวลาส่ง","สถานะ","หมายเหตุ","รูป"]);tasks.forEach(t=>{const eff=getEffStatus(t);const pc=t.photoUrl?t.photoUrl.split(",").filter(Boolean).length:0;rows.push([t.name,t.assignee||"",t.deadline||"",t.submittedAt||"—",t.status!=="ยังไม่ทำ"?t.status:eff,t.note||"",pc]);});rows.push([`ทำสำเร็จ ${s.done}/${s.total} (${s.total?Math.round(s.done/s.total*100):0}%)`]);rows.push([]);});
-  if(ST.damageLogs.length>0){rows.push(["=== ของเสียหาย ==="]);rows.push(["เวลา","รายการ","เหตุผล","แจ้งโดย","รูป"]);ST.damageLogs.forEach(l=>{rows.push([l.time,l.item,l.reason,l.reportedBy,(l.photos||[]).length]);});rows.push([]);}
-  rows.push(["=== สิ่งที่ต้องปรับปรุง ==="]);rows.push(["พนักงาน","ชื่องาน","หมวด","กำหนด","สถานะ"]);
-  STAFF.filter(s=>s.role==="staff").forEach(s=>{allT.filter(t=>t.assignee===s.name&&(t.status==="ตีกลับ"||(t.status==="ยังไม่ทำ"&&isTimePast(t.deadline)))).forEach(t=>{rows.push([s.name,t.name,t.category||t.round,t.deadline||"",getEffStatus(t)]);});});
+  const allT=allTasks();
+  const rows=[];
+  const sep=()=>rows.push(["────────────────────────────────────────"]);
+  const head=(...cols)=>rows.push(cols);
+  const blank=()=>rows.push([]);
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 1: หัวรายงาน
+  // ══════════════════════════════════════
+  rows.push([`รายงานประจำวัน Mori Cat Café — ${todayISO}`]);
+  rows.push([`วัน${DOW_TH[todayDow]} | สร้างเมื่อ ${fmtTime(thaiNow())}`]);
+  blank();
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 2: สรุปค่าแรง + ค่าปรับ (เจ้าของดู)
+  // ══════════════════════════════════════
+  sep();
+  rows.push(["💰 สรุปค่าแรงและค่าปรับประจำวัน"]);
+  sep();
+  head("ชื่อพนักงาน","ค่าแรงมาตรฐาน(฿)","เวลาเข้า","เวลาเลิก","สถานะ",
+    "มาสาย?","ค่าปรับมาสาย(฿)","งานเลยเวลา(ชิ้น)","ค่าปรับงาน(฿)",
+    "รวมค่าปรับ(฿)","ยอดสุทธิก่อนโบนัส(฿)","หมายเหตุ");
+
+  STAFF.filter(s=>s.role==="staff").forEach(s=>{
+    const u=USERS.find(x=>x.id===s.id),w=u?.wage||0;
+    const isLate=s.status==="มาสาย";
+    const lf=isLate?ST.settings.lateFine:0;
+    const lateTasks=allT.filter(t=>t.assignee===s.name&&t.status==="ยังไม่ทำ"&&isTimePast(t.deadline));
+    const tf=lateTasks.length*ST.settings.noTaskFine;
+    const totalFine=lf+tf;
+    const net=s.checkIn?Math.max(0,w-totalFine):0;
+    rows.push([
+      s.name, w,
+      s.checkIn||"ไม่เข้างาน", s.checkOut||"ยังไม่เลิก",
+      s.status,
+      isLate?"ใช่":"ไม่","฿"+lf,
+      lateTasks.length,"฿"+tf,
+      "฿"+totalFine,"฿"+net,
+      !s.checkIn?"ขาดงาน":isLate?"มาสายต้องแจ้ง owner":""
+    ]);
+  });
+  blank();
+
+  // รายละเอียดงานที่เลยเวลา (เพื่อประกอบการพิจารณาค่าปรับ)
+  rows.push(["📋 งานเลยเวลาที่ใช้คำนวณค่าปรับ"]);
+  head("พนักงาน","ชื่องาน","หมวด","กำหนดเวลา","สถานะ","ค่าปรับ/ชิ้น(฿)");
+  let anyLate=false;
+  STAFF.filter(s=>s.role==="staff").forEach(s=>{
+    allT.filter(t=>t.assignee===s.name&&t.status==="ยังไม่ทำ"&&isTimePast(t.deadline)).forEach(t=>{
+      rows.push([s.name,t.name,t.category||t.round,t.deadline||"","เลยเวลา","฿"+ST.settings.noTaskFine]);
+      anyLate=true;
+    });
+  });
+  if(!anyLate) rows.push(["✅ ไม่มีงานเลยเวลา"]);
+  blank();
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 3: สรุปการตัดสินใจค่าปรับของ Owner
+  // (ดึงจาก notification log ที่บันทึกไว้)
+  // ══════════════════════════════════════
+  sep();
+  rows.push(["⚖️ การตัดสินใจค่าปรับของเจ้าของ (วันนี้)"]);
+  sep();
+  head("พนักงาน","การตัดสินใจ","ค่าปรับจริงที่หัก(฿)","โบนัส/คอมมิสชั่น(฿)","ค่าแรงพิเศษ(฿)","ยอดสุทธิจริง(฿)","หมายเหตุ");
+  // ดึงจาก notifs ที่มี 💰
+  const fineNotifs=ST.notifs.filter(n=>n.msg&&n.msg.startsWith("💰"));
+  if(fineNotifs.length>0){
+    fineNotifs.forEach(n=>{
+      // parse จาก message format: "💰 ชื่อ: หักค่าปรับ ฿X + โบนัส ฿Y | ยอดสุทธิ ฿Z"
+      rows.push([n.msg.replace("💰 ",""), "ดูรายละเอียดในบันทึก","","","","",n.time]);
+    });
+  }else{
+    rows.push(["ยังไม่มีการบันทึกค่าปรับวันนี้ — ใช้ยอดก่อนอนุโลมข้างต้นแทน"]);
+  }
+  blank();
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 4: สรุปงานแต่ละหมวด
+  // ══════════════════════════════════════
+  const taskGroups=[
+    ["🔄 รอบงาน","round",TASKS],
+    ["📝 รายวัน","daily",DAILY_TASKS],
+    ["☕ บาริสต้า","barista",BARISTA_TASKS],
+    ["🎨 เพ้นท์","paint",[...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS]],
+    ["🚿 ห้องน้ำ","bathroom",BATHROOM_TASKS],
+    ["🍳 ห้องครัว","kitchen",KITCHEN_TASKS],
+    ["📅 รายสัปดาห์","weekly",WEEKLY_TODAY],
+  ];
+
+  taskGroups.forEach(([label,cat,tasks])=>{
+    if(!tasks.length)return;
+    const s=tStat(tasks);
+    const pct=s.total?Math.round(s.done/s.total*100):0;
+    sep();
+    rows.push([label]);
+    rows.push([
+      `ผ่าน: ${s.done}`,`รอตรวจ: ${s.pending}`,
+      `ยังไม่ทำ: ${s.todo}`,`เลยเวลา: ${s.late}`,
+      `ตีกลับ: ${s.rej}`,`รวม: ${s.total}`,
+      `คิดเป็น ${pct}%`,
+      pct>=80?"✅ ดีมาก":pct>=60?"⚠️ พอใช้":"❌ ต้องปรับปรุง"
+    ]);
+    sep();
+
+    // แยกเป็น 3 กลุ่มย่อย
+    const done  =tasks.filter(t=>t.status==="ผ่าน");
+    const pending=tasks.filter(t=>t.status==="รอตรวจ");
+    const prob  =tasks.filter(t=>["ตีกลับ","ยังไม่ทำ"].includes(t.status)&&(t.status==="ตีกลับ"||isTimePast(t.deadline)));
+    const normal=tasks.filter(t=>t.status==="ยังไม่ทำ"&&!isTimePast(t.deadline));
+
+    if(done.length){
+      rows.push(["✅ งานที่ผ่านแล้ว ("+done.length+" รายการ)"]);
+      head("ชื่องาน","ผู้รับผิดชอบ","เวลาส่ง","จำนวนรูป");
+      done.forEach(t=>{
+        const pc=t.photoUrl?t.photoUrl.split(",").filter(Boolean).length:0;
+        rows.push([t.name,t.assignee||"",t.submittedAt||"",pc+"รูป"]);
+      });
+      blank();
+    }
+    if(pending.length){
+      rows.push(["⏳ งานรอตรวจ ("+pending.length+" รายการ)"]);
+      head("ชื่องาน","ผู้รับผิดชอบ","เวลาส่ง","จำนวนรูป");
+      pending.forEach(t=>{
+        const pc=t.photoUrl?t.photoUrl.split(",").filter(Boolean).length:0;
+        rows.push([t.name,t.assignee||"",t.submittedAt||"",pc+"รูป"]);
+      });
+      blank();
+    }
+    if(prob.length){
+      rows.push(["❌ งานที่ต้องปรับปรุง / ตักเตือน ("+prob.length+" รายการ)"]);
+      head("ชื่องาน","ผู้รับผิดชอบ","กำหนด","สถานะ","ข้อเสนอแนะ");
+      prob.forEach(t=>{
+        const eff=getEffStatus(t);
+        const suggest=t.status==="ตีกลับ"?"ต้องส่งใหม่พร้อมรูปจากหน้างาน"
+          :"งานเลยกำหนด ต้องตักเตือนพนักงาน";
+        rows.push([t.name,t.assignee||"",t.deadline||"",eff,suggest]);
+      });
+      blank();
+    }
+    if(normal.length){
+      rows.push(["⬜ งานที่ยังไม่ถึงเวลา/ยังทำได้ ("+normal.length+" รายการ)"]);
+      head("ชื่องาน","ผู้รับผิดชอบ","กำหนด");
+      normal.forEach(t=>{rows.push([t.name,t.assignee||"",t.deadline||""]);});
+      blank();
+    }
+  });
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 5: สรุปรายพนักงาน (ให้พนักงานเห็นภาพ)
+  // ══════════════════════════════════════
+  sep();
+  rows.push(["👤 สรุปรายพนักงาน — เพื่อปรับปรุง"]);
+  sep();
+  STAFF.filter(s=>s.role==="staff").forEach(s=>{
+    const myTasks=allT.filter(t=>t.assignee===s.name);
+    const myDone=myTasks.filter(t=>t.status==="ผ่าน").length;
+    const myPend=myTasks.filter(t=>t.status==="รอตรวจ").length;
+    const myLate=myTasks.filter(t=>t.status==="ยังไม่ทำ"&&isTimePast(t.deadline));
+    const myRej =myTasks.filter(t=>t.status==="ตีกลับ");
+    const pct=myTasks.length?Math.round(myDone/myTasks.length*100):0;
+    rows.push([`── ${s.name} ──`]);
+    rows.push(["ผ่าน","รอตรวจ","เลยเวลา","ตีกลับ","รวม","% สำเร็จ","ประเมิน"]);
+    rows.push([myDone,myPend,myLate.length,myRej.length,myTasks.length,pct+"%",
+      pct>=90?"🌟 ยอดเยี่ยม":pct>=75?"✅ ดี":pct>=50?"⚠️ ปานกลาง":"❌ ต้องตักเตือน"]);
+    if(myLate.length>0){
+      rows.push(["  งานเลยเวลา:"]);
+      myLate.forEach(t=>rows.push(["  •",t.name,t.deadline||"","ต้องแจ้งเหตุ"]));
+    }
+    if(myRej.length>0){
+      rows.push(["  งานตีกลับ:"]);
+      myRej.forEach(t=>rows.push(["  •",t.name,"","ต้องส่งใหม่"]));
+    }
+    blank();
+  });
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 6: ของเสียหายวันนี้
+  // ══════════════════════════════════════
+  if(ST.damageLogs.length>0){
+    sep();
+    rows.push(["🔴 รายงานของเสียหายวันนี้ ("+ST.damageLogs.length+" รายการ)"]);
+    sep();
+    head("เวลา","รายการ","เหตุผล","แจ้งโดย","จำนวนรูป","URL รูป");
+    ST.damageLogs.forEach(l=>{
+      rows.push([l.time,l.item,l.reason,l.reportedBy,(l.photos||[]).length,(l.photos||[]).join(" | ")]);
+    });
+    blank();
+  }
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 7: สุขภาพแมว
+  // ══════════════════════════════════════
+  const cs=catStat();
+  sep();
+  rows.push([`🐱 สุขภาพแมว — ตรวจแล้ว ${cs.checked}/${cs.total} ตัว | ผ่าน ${cs.passed} | รอตรวจ ${cs.pending} | ผิดปกติ ${cs.abnormal}`]);
+  if(cs.abnormal>0){
+    sep();
+    rows.push(["⚠️ แมวที่พบความผิดปกติ"]);
+    head("ชื่อแมว","สถานะ","รายละเอียด","ผู้บันทึก","เวลา");
+    Object.entries(ST.catLogs).filter(([,l])=>l?.abnormal).forEach(([cat,l])=>{
+      rows.push([cat,l.status||"",l.abnormalDetail||"",l.recordedBy||"",l.time||""]);
+    });
+    blank();
+  }
+
+  // ══════════════════════════════════════
+  // ส่วนที่ 8: ข้อสรุปและคำแนะนำ (owner)
+  // ══════════════════════════════════════
+  sep();
+  rows.push(["📌 สรุปภาพรวมและข้อเสนอแนะสำหรับเจ้าของ"]);
+  sep();
+  const totalAll=allT.length;
+  const doneAll=allT.filter(t=>t.status==="ผ่าน").length;
+  const lateAll=allT.filter(t=>t.status==="ยังไม่ทำ"&&isTimePast(t.deadline)).length;
+  const rejAll=allT.filter(t=>t.status==="ตีกลับ").length;
+  const pendAll=allT.filter(t=>t.status==="รอตรวจ").length;
+  const pctAll=totalAll?Math.round(doneAll/totalAll*100):0;
+  rows.push(["งานรวมทั้งหมด","ผ่านแล้ว","รอตรวจ","เลยเวลา","ตีกลับ","% สำเร็จ"]);
+  rows.push([totalAll,doneAll,pendAll,lateAll,rejAll,pctAll+"%"]);
+  blank();
+  rows.push(["ข้อเสนอแนะ"]);
+  if(lateAll>0) rows.push(["⚠️","มีงานเลยเวลา "+lateAll+" รายการ — ควรตักเตือนพนักงานและพิจารณาค่าปรับ"]);
+  if(rejAll>0)  rows.push(["🔄","มีงานตีกลับ "+rejAll+" รายการ — ติดตามให้พนักงานส่งงานใหม่"]);
+  if(cs.abnormal>0) rows.push(["🐱","พบแมวผิดปกติ "+cs.abnormal+" ตัว — ควรตรวจสอบและนัดสัตวแพทย์หากจำเป็น"]);
+  if(ST.damageLogs.length>0) rows.push(["🔴","มีของเสียหาย "+ST.damageLogs.length+" รายการ — พิจารณาดำเนินการต่อ"]);
+  if(lateAll===0&&rejAll===0&&cs.abnormal===0) rows.push(["✅","วันนี้ไม่มีปัญหาสำคัญ พนักงานทำงานได้ดีค่ะ 🐱"]);
+
+  // ══════════════════════════════════════
+  // Export
+  // ══════════════════════════════════════
   const csv=rows.map(r=>r.map(v=>`"${String(v||"").replace(/"/g,'""')}"`).join(",")).join("\n");
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));a.download=`mori-สรุป-${todayISO}.csv`;a.click();
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));
+  a.download=`Mori-รายงาน-${todayISO}.csv`;
+  a.click();
 }
 
 document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🐱</div><div style="font-size:13px;color:#5F5E5A;margin-top:8px">กำลังโหลด...</div></div>`;
