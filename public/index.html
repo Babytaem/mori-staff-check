@@ -224,7 +224,28 @@ function allTasks(){return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_
 function updateAllArr(id,patch){const upd=arr=>arr.map(t=>t.id===id?{...t,...patch}:t);TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);PAINT_FREE_TASKS=upd(PAINT_FREE_TASKS);PAINT_ROUND_TASKS=upd(PAINT_ROUND_TASKS);WEEKLY_TODAY=upd(WEEKLY_TODAY);WEEKLY_ALL=upd(WEEKLY_ALL);}
 function resetAllTasks(){TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));DAILY_TASKS=mkTask("d",DAILY_NAMES,"รายวัน","ก่อนเลิกงาน","daily");BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน","kitchen");PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้นท์-ทั่วไป",deadline:"ก่อนเลิกงาน",category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));}
 
-function isTimePast(hhmm){if(!hhmm||hhmm==="ก่อนเลิกงาน")return false;const[h,m]=hhmm.split(":").map(Number);const n=thaiNow();return n.getHours()*60+n.getMinutes()>h*60+m;}
+function isTimePast(hhmm){
+  if(!hhmm||hhmm==="ก่อนเลิกงาน")return false;
+  const[h,m]=hhmm.split(":").map(Number);
+  const n=thaiNow();
+  const nowH=n.getHours(), nowM=n.getMinutes();
+  const nowMins=nowH*60+nowM;
+  const taskMins=h*60+m;
+
+  // ✅ รอบที่กำหนดหลังเที่ยงคืน (00:00-03:29) = ต้องรอถึงคืนนี้ก่อน
+  // ถ้าตอนนี้เป็นช่วงกลางวัน/เย็น (04:00-23:59) และ task เป็นตี (0:00-3:29)
+  // แปลว่า task นี้ยัง "ยังไม่ถึง" เพราะต้องรอถึงคืนก่อน
+  const taskIsAfterMidnight = h < 4; // 00:00-03:59 = หลังเที่ยงคืน
+  const nowIsDay = nowH >= 4;        // 04:00+ = ช่วงกลางวัน/เย็น
+
+  if(taskIsAfterMidnight && nowIsDay){
+    // เช่น task=01:30 และตอนนี้=06:01 → ยังไม่เลยเวลา (ต้องรอคืนนี้)
+    return false;
+  }
+
+  // กรณีปกติ: เปรียบเทียบตามเวลาตรงๆ
+  return nowMins > taskMins;
+}
 function getEffStatus(t){if(t.status!=="ยังไม่ทำ")return t.status;return isTimePast(t.deadline)?"เลยเวลา":"ยังไม่ทำ";}
 
 // ══════════════════════════════════════════════════════════════
