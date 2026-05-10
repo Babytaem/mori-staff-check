@@ -74,12 +74,30 @@ function fmtTime(d){return d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"
 function fmtDate(d){return d.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});}
 function fmtISO(d){const off=7*60,loc=new Date(d.getTime()+off*60000);return loc.toISOString().slice(0,10);}
 
+// ✅ reset ตี 3:30 — เช็คว่าถึงเวลา reset หรือยัง
+// วันที่ใช้บันทึก = วันปฏิทินจริง (fmtISO ปกติ)
+// แต่ reload เมื่อ: วันปฏิทินเปลี่ยน หรือ เวลาถึง 03:30 (ถ้าวันนี้ยังไม่ได้ reset)
+let _lastResetDate=fmtISO(thaiNow()); // วันที่ reset ล่าสุด
+
 let _clockInt=null;
 function startClock(){
   if(_clockInt)return;
   _clockInt=setInterval(()=>{
-    ["liveClock","liveClock2"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmtTime(thaiNow());});
-    if(fmtISO(thaiNow())!==todayISO)location.reload();
+    const now=thaiNow();
+    ["liveClock","liveClock2"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmtTime(now);});
+    const currentDate=fmtISO(now);
+    const h=now.getHours(),m=now.getMinutes();
+    // reload ถ้า: วันปฏิทินเปลี่ยน หรือ ถึงตี 3:30 แล้วยังไม่ได้ reset วันนี้
+    const isResetTime=(h===3&&m>=30)||h>3;
+    const needReset=currentDate!==todayISO||(isResetTime&&currentDate===todayISO&&_lastResetDate!==currentDate+"_reset");
+    if(currentDate!==todayISO){
+      // วันปฏิทินเปลี่ยน (เที่ยงคืน) — reload เสมอ
+      location.reload();
+    } else if(isResetTime&&_lastResetDate!==currentDate+"_done"){
+      // ตี 3:30+ และยังไม่ได้ reload วันนี้
+      _lastResetDate=currentDate+"_done";
+      location.reload();
+    }
   },30000);
 }
 
@@ -140,9 +158,16 @@ const WEEKLY_TASKS={
 const DOW_TH=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
 
 let _now=thaiNow();
+// ✅ วันที่ = วันปฏิทินจริงเสมอ
 let todayISO=fmtISO(_now);
 let todayDow=_now.getDay();
-function getWeekISO(){const d=new Date(_now);d.setHours(0,0,0,0);const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);return fmtISO(d);}
+function getWeekISO(){
+  const d=new Date(_now);
+  d.setHours(0,0,0,0);
+  const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);
+  d.setDate(diff);
+  return fmtISO(d);
+}
 const weekISO=getWeekISO();
 
 function mkTask(prefix,names,round,deadline,cat){return names.map((n,i)=>({id:`${prefix}${i}`,name:n,round,deadline,category:cat,assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));}
