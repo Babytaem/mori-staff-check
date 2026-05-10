@@ -841,10 +841,14 @@ function main(){
         ${t.note?`<div style="background:#F1EFE8;border-radius:8px;padding:6px 10px;font-size:11px;margin-bottom:8px">💬 ${t.note}</div>`:""}
 
         ${isChicken&&canS?`<div style="background:#FAECE7;border-radius:10px;padding:10px;margin-bottom:10px">
-          <div style="font-size:12px;font-weight:500;color:#D85A30;margin-bottom:8px">🍗 บันทึกต้มไก่</div>
-          <div style="margin-bottom:8px"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">น้ำหนักไก่ที่ต้ม (กรัม)</div>
-          <input type="number" placeholder="เช่น 500" value="${extra.chickenWeight||""}" oninput="setExtra('${t.id}','chickenWeight',this.value)" style="border:.5px solid #D85A30"/></div>
-          <div><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">หมายเหตุ (เช่น ไก่อก แบ่งกี่มื้อ)</div>
+          <div style="font-size:12px;font-weight:500;color:#D85A30;margin-bottom:8px">🍗 ต้มไก่ป้อนแมว — เลือกจำนวน</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px">
+            <button onclick="setExtra('${t.id}','chickenAmount','1 ชิ้น');render()" style="flex:1;padding:8px;border-radius:8px;border:.5px solid #D85A30;background:${extra.chickenAmount==='1 ชิ้น'?'#D85A30':'#fff'};color:${extra.chickenAmount==='1 ชิ้น'?'#fff':'#D85A30'};cursor:pointer;font-family:inherit;font-size:12px;font-weight:500">🍗 1 ชิ้น</button>
+            <button onclick="setExtra('${t.id}','chickenAmount','2 ชิ้น');render()" style="flex:1;padding:8px;border-radius:8px;border:.5px solid #D85A30;background:${extra.chickenAmount==='2 ชิ้น'?'#D85A30':'#fff'};color:${extra.chickenAmount==='2 ชิ้น'?'#fff':'#D85A30'};cursor:pointer;font-family:inherit;font-size:12px;font-weight:500">🍗🍗 2 ชิ้น</button>
+            <button onclick="setExtra('${t.id}','chickenAmount','ไม่ได้ต้ม');render()" style="flex:1;padding:8px;border-radius:8px;border:.5px solid #888780;background:${extra.chickenAmount==='ไม่ได้ต้ม'?'#888780':'#fff'};color:${extra.chickenAmount==='ไม่ได้ต้ม'?'#fff':'#888780'};cursor:pointer;font-family:inherit;font-size:11px;font-weight:500">❌ ไม่ได้ต้ม</button>
+          </div>
+          ${extra.chickenAmount==='ไม่ได้ต้ม'?`<div style="background:#FCEBEB;border-radius:8px;padding:6px 8px;font-size:11px;color:#A32D2D">⚠️ กรุณาระบุเหตุผลที่ไม่ได้ต้ม</div>`:""}
+          <div style="margin-top:8px"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">หมายเหตุ (เช่น เหตุผลที่ไม่ต้ม / แบ่งกี่มื้อ)</div>
           <input type="text" placeholder="..." value="${extra.chickenNote||""}" oninput="setExtra('${t.id}','chickenNote',this.value)" style="border:.5px solid #D85A30"/></div>
         </div>`:""}
 
@@ -873,8 +877,8 @@ function main(){
         ${canA?`<div style="margin-top:8px">
           <div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">📷 รูปหลักฐาน (${existingPhotos.length} รูป):</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">${existingPhotos.map(u=>`<img src="${u}" style="width:100%;height:70px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${u}','_blank')"/>`).join("")}</div>
+          ${extra.chickenAmount?`<div style="background:#FAECE7;border-radius:8px;padding:6px;margin-bottom:8px;font-size:12px;color:#D85A30">🍗 จำนวน: ${extra.chickenAmount}${extra.chickenNote?" · "+extra.chickenNote:""}</div>`:""}
           ${extra.iceChoice?`<div style="background:#E6F1FB;border-radius:8px;padding:6px;margin-bottom:8px;font-size:12px;color:#185FA5">🧊 ${extra.iceChoice}</div>`:""}
-          ${extra.chickenWeight?`<div style="background:#FAECE7;border-radius:8px;padding:6px;margin-bottom:8px;font-size:12px;color:#D85A30">🍗 ไก่ ${extra.chickenWeight}g ${extra.chickenNote||""}</div>`:""}
           <div class="mr"><button class="btn" style="background:#EAF3DE;color:#639922" onclick="appT('${t.id}');closeM()">✓ ผ่าน</button><button class="btn" style="background:#FCEBEB;color:#A32D2D" onclick="rejT('${t.id}');closeM()">✗ ตีกลับ</button></div>
         </div>`:""}
         ${t.status==="ผ่าน"?`<div style="background:#EAF3DE;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#639922;font-weight:500">✓ งานผ่านการตรวจแล้ว</div>`:""}
