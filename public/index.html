@@ -146,7 +146,7 @@ let STAFF=[
 
 // รอบงาน — เพิ่ม 12:00 (ต้มไก่+สั่งน้ำแข็ง), เช็ดตามผนัง, เช็ดฉี่ทั่วห้อง, สต็อก 20:00
 const ROUNDS=[
-  {time:"12:00",tasks:["ต้มไก่ป้อนแมว (เสร็จก่อน 12:00!)","สั่งน้ำแข็ง"]},
+  {time:"12:00",tasks:["ต้มไก่ป้อนแมว (เสร็จก่อน 12:00!)","สั่งน้ำแข็ง","ปล่อยแมวเข้าห้องคาเฟ่"]},
   {time:"12:30",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
   {time:"14:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
   {time:"16:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
@@ -167,7 +167,31 @@ const ROUNDS=[
   ]}
 ];
 
-const DAILY_NAMES=["ทำความสะอาดแมวที่ปล่อยห้องคาเฟ่","ทำความสะอาดห้องแมวเล็กรอบแรก","เช็ดตา หู หวีขน แมวในห้องเล็ก","เช็ดกระจกด้านในห้องคาเฟ่","เช็ดกระจกด้านนอกรอบร้านทุกบาน","กวาดหน้าร้าน รวมบนศาล","เติมน้ำไหว้ศาล","กวาดบริเวณกรวยหน้าร้าน","เช็ดโต๊ะหน้าร้าน","รดน้ำต้นไม้ และทิ้งขยะข้างร้าน","เช็ดโต๊ะข้างร้าน","กวาดข้างร้าน","เปิดหน้าร้าน","ปิดหน้าร้าน","ทำความสะอาดห้องน้ำ","ทำความสะอาดห้องแมวเล็กรอบเย็น","เช็คสต็อกของ","ป้อนยาแมว"];
+// ✅ DAILY_TASKS ใช้ object แทน string เพื่อระบุ deadline แต่ละงาน
+const DAILY_LIST=[
+  // ── มีกำหนดเวลา เรียงจากเร็วไปช้า ──
+  {name:"เปิดหน้าร้าน",                        deadline:"12:00"},
+  {name:"เช็คความเรียบร้อยก่อนเปิดร้าน",       deadline:"12:00"},
+  {name:"ทำความสะอาดแมวที่ปล่อยห้องคาเฟ่",   deadline:"12:00"},
+  {name:"เช็ดกระจกด้านในห้องคาเฟ่",           deadline:"12:30"},
+  {name:"เติมน้ำไหว้ศาล",                      deadline:"12:30"},
+  {name:"เช็ดกระจกด้านนอกรอบร้านทุกบาน",      deadline:"12:50"},
+  {name:"เช็ดโต๊ะหน้าร้าน",                    deadline:"13:00"},
+  {name:"เช็ดโต๊ะข้างร้าน",                    deadline:"13:00"},
+  {name:"ทำความสะอาดห้องแมวเล็กรอบแรก",       deadline:"14:00"},
+  {name:"เช็ดตา หู หวีขน แมวในห้องเล็ก",      deadline:"15:00"},
+  // ── ตามเวลาที่กำหนด ──
+  {name:"ป้อนยาแมว",                           deadline:"ตามเวลาที่กำหนด"},
+  // ── ไม่ระบุเวลา ──
+  {name:"กวาดหน้าร้าน รวมบนศาล",              deadline:""},
+  {name:"กวาดบริเวณกรวยหน้าร้าน",             deadline:""},
+  {name:"รดน้ำต้นไม้ และทิ้งขยะข้างร้าน",      deadline:""},
+  {name:"กวาดข้างร้าน",                        deadline:""},
+  {name:"ปิดหน้าร้าน",                         deadline:""},
+  {name:"ทำความสะอาดห้องน้ำ",                  deadline:""},
+  {name:"ทำความสะอาดห้องแมวเล็กรอบเย็น",      deadline:""},
+  {name:"เช็คสต็อกของ",                        deadline:""},
+];
 const BARISTA_LIST=[{t:"11:30",n:"เปิดรั้ว/เปิดน้ำเด็ก/จัดโต๊ะหน้าร้าน"},{t:"11:40",n:"ดูดฝุ่น + ถูพื้น"},{t:"11:50",n:"เปิดไฟตู้เค้ก เรียงของ"},{t:"11:55",n:"เช็คความพร้อมทุกอย่างก่อนเปิดร้าน"},{t:"12:15",n:"เช็ดกระจกโซนห้องชงน้ำ"},{t:"12:25",n:"ทำความสะอาดแก้ว และเติมน้ำบนศาล (ส่งรูป)"},{t:"21:00",n:"เช็คสต็อกทุกอย่าง"},{t:"23:50",n:"เช็คเคลียร์เคาน์เตอร์"}];
 
 // งานเพ้นท์
@@ -211,7 +235,27 @@ const weekISO=getWeekISO();
 
 function mkTask(prefix,names,round,deadline,cat){return names.map((n,i)=>({id:`${prefix}${i}`,name:n,round,deadline,category:cat,assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));}
 let TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
-let DAILY_TASKS=mkTask("d",DAILY_NAMES,"รายวัน","ก่อนเลิกงาน","daily");
+fixTaskAssignees();
+// ✅ DAILY_TASKS สร้างจาก DAILY_LIST พร้อม deadline แต่ละงาน
+let DAILY_TASKS=DAILY_LIST.map((item,i)=>({
+  id:`d${i}`,
+  name:item.name,
+  round:"รายวัน",
+  deadline:item.deadline||"ก่อนเลิกงาน",
+  category:"daily",
+  assignee:STAFF[2+(i%2)]?.name||"",
+  status:"ยังไม่ทำ",
+  photoUrl:null,note:"",submittedAt:null
+}));
+
+// กำหนด "ปล่อยแมวเข้าห้องคาเฟ่" (รอบ 12:00) ให้น้องต้า
+// (อยู่ใน TASKS ไม่ใช่ DAILY_TASKS)
+function fixTaskAssignees(){
+  TASKS=TASKS.map(t=>{
+    if(t.name==="ปล่อยแมวเข้าห้องคาเฟ่") return{...t,assignee:STAFF[3]?.name||""};
+    return t;
+  });
+}
 let BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));
 let BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");
 let KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน","kitchen");
@@ -222,7 +266,7 @@ let WEEKLY_ALL=Object.entries(WEEKLY_TASKS).flatMap(([dow,tasks])=>tasks.map(t=>
 
 function allTasks(){return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS,...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS];}
 function updateAllArr(id,patch){const upd=arr=>arr.map(t=>t.id===id?{...t,...patch}:t);TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);PAINT_FREE_TASKS=upd(PAINT_FREE_TASKS);PAINT_ROUND_TASKS=upd(PAINT_ROUND_TASKS);WEEKLY_TODAY=upd(WEEKLY_TODAY);WEEKLY_ALL=upd(WEEKLY_ALL);}
-function resetAllTasks(){TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));DAILY_TASKS=mkTask("d",DAILY_NAMES,"รายวัน","ก่อนเลิกงาน","daily");BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน","kitchen");PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้นท์-ทั่วไป",deadline:"ก่อนเลิกงาน",category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));}
+function resetAllTasks(){TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));  DAILY_TASKS=DAILY_LIST.map((item,i)=>({id:`d${i}`,name:item.name,round:"รายวัน",deadline:item.deadline||"ก่อนเลิกงาน",category:"daily",assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน","kitchen");PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้นท์-ทั่วไป",deadline:"ก่อนเลิกงาน",category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));}
 
 function isTimePast(hhmm){
   if(!hhmm||hhmm==="ก่อนเลิกงาน")return false;
@@ -559,14 +603,23 @@ function main(){
       const eff=getEffStatus(t);const isLate=(eff==="เลยเวลา"&&t.status==="ยังไม่ทำ");const sent=t.status!=="ยังไม่ทำ";const showBadge=sent?t.status:(isLate?"เลยเวลา":"ยังไม่ทำ");
       const photoCount=t.photoUrl?t.photoUrl.split(",").filter(Boolean).length:0;
       const extra=ST.taskExtraData[t.id];
+      // ✅ แสดง deadline สีแดงสำหรับงานรายวันที่มีกำหนดเวลา
+      const hasDeadlineWarn=t.category==="daily"&&t.deadline&&t.deadline!=="ก่อนเลิกงาน"&&t.deadline!=="ตามเวลาที่กำหนด";
       return`<div class="tr" onclick="openT('${t.id}')">
         <div style="flex:1;margin-right:8px">
-          <div style="font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span>${t.name}</span>${isLate&&!sent?`<span class="late-tag">⚠️เลยเวลา</span>`:""}${t.isLate&&sent?`<span class="late-tag">ส่งเลยเวลา</span>`:""}</div>
+          <div style="font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span>${t.name}</span>
+            ${isLate&&!sent?`<span class="late-tag">⚠️เลยเวลา</span>`:""}
+            ${t.isLate&&sent?`<span class="late-tag">ส่งเลยเวลา</span>`:""}
+          </div>
+          ${hasDeadlineWarn?`<div style="font-size:10px;color:#A32D2D;font-weight:500;margin-top:1px">🔴 ห้ามเกิน ${t.deadline} น.</div>`:""}
+          ${t.deadline==="ตามเวลาที่กำหนด"?`<div style="font-size:10px;color:#BA7517;margin-top:1px">⏰ ตามเวลาที่กำหนด</div>`:""}
           ${extra?.iceChoice?`<div style="font-size:10px;color:#185FA5">🧊 ${extra.iceChoice}</div>`:""}
           ${t.note?`<div style="font-size:10px;color:#5F5E5A;margin-top:1px">💬 ${t.note}</div>`:""}
-          <div style="font-size:10px;color:#5F5E5A;margin-top:1px">${t.assignee||""}${t.deadline&&t.deadline!=="ก่อนเลิกงาน"?` · ⏰${t.deadline}`:""}${t.submittedAt?` · ส่ง ${t.submittedAt}`:""}</div>
+          <div style="font-size:10px;color:#5F5E5A;margin-top:1px">${t.assignee||""}${t.submittedAt?` · ส่ง ${t.submittedAt}`:""}</div>
         </div>
-        <div style="display:flex;gap:4px;align-items:center">${photoCount>0?`<span style="font-size:10px;color:#185FA5">📸${photoCount}</span>`:""}
+        <div style="display:flex;gap:4px;align-items:center">
+          ${photoCount>0?`<span style="font-size:10px;color:#185FA5">📸${photoCount}</span>`:""}
           <span class="badge" style="${bc(showBadge)}">${showBadge}</span>
         </div>
       </div>`;
