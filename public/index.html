@@ -670,11 +670,41 @@ function main(){
     const notifPerm=typeof Notification!=="undefined"?Notification.permission:"unsupported";
     content=`<div class="pad">
       ${!isAdmin?`<div class="wb">⚠️ การตั้งค่าสงวนสำหรับ Owner/เลขาดูแลระบบ</div>`:""}
-      ${isOwner?`<div class="sec">🔴 รีเซ็ตข้อมูลประจำวัน (Owner เท่านั้น)</div>
-        <div class="card" style="border:.5px solid #F4C0D1">
-          <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">รีเซ็ตงาน Tasks ของวันนี้ให้กลับเป็น "ยังไม่ทำ" ทั้งหมด</div>
-          <button onclick="resetTodayTasks()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px">🔄 รีเซ็ตงานทั้งวัน</button>
-        </div>`:""}
+      ${isOwner?`
+      <div class="sec">🔴 รีเซ็ตข้อมูล (Owner เท่านั้น)</div>
+      <div class="card" style="border:.5px solid #F4C0D1">
+        <div style="font-size:11px;color:#A32D2D;background:#FFF5F5;border-radius:8px;padding:8px;margin-bottom:10px">
+          ⚠️ ทุกปุ่มจะขอยืนยันก่อนเสมอ และไม่สามารถกู้คืนได้
+        </div>
+
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px">📋 งาน</div>
+        <button onclick="resetTodayTasks()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">
+          🔄 รีเซ็ตงานทั้งวัน<br><span style="font-size:10px;font-weight:400">งานทุกรายการกลับเป็น "ยังไม่ทำ"</span>
+        </button>
+
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px;margin-top:4px">🐱 แมว</div>
+        <button onclick="resetCatHealth()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">
+          🔄 รีเซ็ตข้อมูลสุขภาพแมววันนี้<br><span style="font-size:10px;font-weight:400">ล้างผลเช็คแมวทุกตัวของวันนี้</span>
+        </button>
+        <button onclick="resetKittenLogs()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">
+          🔄 รีเซ็ตบันทึกลูกแมววันนี้<br><span style="font-size:10px;font-weight:400">ล้างบันทึกลูกแมวทุกรอบของวันนี้</span>
+        </button>
+
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px;margin-top:4px">🔴 ของเสียหาย</div>
+        <button onclick="resetDamageLogs()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">
+          🔄 รีเซ็ตรายการของเสียหายวันนี้<br><span style="font-size:10px;font-weight:400">ล้างรายการแจ้งของเสียหายทั้งหมดวันนี้</span>
+        </button>
+
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px;margin-top:4px">📋 คำขอลา</div>
+        <button onclick="resetLeaveRequests()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">
+          🔄 รีเซ็ตคำขอลาทั้งหมด<br><span style="font-size:10px;font-weight:400">ล้างประวัติลาทุกคน (ใช้ตอนขึ้นปีใหม่)</span>
+        </button>
+
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px;margin-top:4px">⭐ คะแนนพนักงาน</div>
+        <button onclick="resetScores()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px">
+          🔄 รีเซ็ตคะแนนพนักงานทั้งหมด<br><span style="font-size:10px;font-weight:400">คะแนนกลับเป็น 0 ทุกคน (เริ่มรอบใหม่)</span>
+        </button>
+      </div>`:""}
       <div class="sec">🔔 การแจ้งเตือน</div>
       <div class="card">
         <div style="font-size:12px;color:#5F5E5A;margin-bottom:8px">สถานะ: ${notifPerm==="granted"?"✅ เปิด":notifPerm==="denied"?"❌ ถูกบล็อก":"⏳ ยังไม่ขออนุญาต"}</div>
@@ -1198,7 +1228,90 @@ async function saveKitten(id){
   ST.syncing=false;addN(`🍼 บันทึกลูกแมว ${k?.name||id} แล้ว`);render();
 }
 
-async function resetTodayTasks(){if(!confirm("⚠️ ยืนยันรีเซ็ตงานทั้งวัน?"))return;ST.syncing=true;render();await fbDel(`tasks/${todayISO}`);await fbDel(`weeklyTasks/${weekISO}`);resetAllTasks();ST.syncing=false;addN("🔄 รีเซ็ตงานประจำวันแล้ว",false);render();}
+// ── Reset functions ทุกอันมี confirm ──────────────────────────
+
+async function resetTodayTasks(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตงานทั้งวัน?\n\n"+
+    "• งานทุกรายการจะกลับเป็น 'ยังไม่ทำ'\n"+
+    "• ข้อมูลเช็คอิน/แมว/ประวัติไม่เปลี่ยน\n"+
+    "• ไม่สามารถกู้คืนได้"
+  ))return;
+  ST.syncing=true;render();
+  await fbDel(`tasks/${todayISO}`);
+  await fbDel(`weeklyTasks/${weekISO}`);
+  resetAllTasks();
+  ST.syncing=false;addN("🔄 รีเซ็ตงานประจำวันแล้ว");render();
+}
+
+async function resetCatHealth(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตข้อมูลสุขภาพแมววันนี้?\n\n"+
+    "• ผลเช็คแมวทุกตัวของวันนี้จะหายหมด\n"+
+    "• ต้องเช็คแมวใหม่ทั้งหมด\n"+
+    "• ไม่สามารถกู้คืนได้"
+  ))return;
+  ST.syncing=true;render();
+  await fbDel(`catHealth/${todayISO}`);
+  ST.catLogs={};
+  ST.catCheckItems={};
+  ST.syncing=false;addN("🔄 รีเซ็ตข้อมูลสุขภาพแมวแล้ว");render();
+}
+
+async function resetKittenLogs(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตบันทึกลูกแมววันนี้?\n\n"+
+    "• บันทึกลูกแมวทุกรอบของวันนี้จะหายหมด\n"+
+    "• ไม่สามารถกู้คืนได้"
+  ))return;
+  ST.syncing=true;render();
+  await fbDel(`kittenLogs/${todayISO}`);
+  ST.kittenLogs={k1:[],k2:[],k3:[]};
+  ST.syncing=false;addN("🔄 รีเซ็ตบันทึกลูกแมวแล้ว");render();
+}
+
+async function resetDamageLogs(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตรายการของเสียหายวันนี้?\n\n"+
+    "• รายการแจ้งของเสียหายทั้งหมดวันนี้จะหายหมด\n"+
+    "• ไม่สามารถกู้คืนได้"
+  ))return;
+  ST.syncing=true;render();
+  await fbDel(`damageLogs/${todayISO}`);
+  ST.damageLogs=[];
+  ST.syncing=false;addN("🔄 รีเซ็ตรายการของเสียหายแล้ว");render();
+}
+
+async function resetLeaveRequests(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตคำขอลาทั้งหมด?\n\n"+
+    "• ประวัติการลาของพนักงานทุกคนจะหายหมด\n"+
+    "• ใช้ตอนขึ้นปีใหม่หรือเริ่มรอบใหม่เท่านั้น\n"+
+    "• ไม่สามารถกู้คืนได้"
+  ))return;
+  // ยืนยันอีกรอบเพราะสำคัญมาก
+  if(!confirm(
+    "🔴 ยืนยันอีกครั้ง!\n\n"+
+    "ประวัติการลาทั้งหมดจะถูกลบถาวร\n"+
+    "กด OK เพื่อดำเนินการต่อ"
+  ))return;
+  ST.syncing=true;render();
+  await fbDel(`leaveRequests`);
+  ST.leaveRequests=[];
+  ST.syncing=false;addN("🔄 รีเซ็ตคำขอลาทั้งหมดแล้ว");render();
+}
+
+async function resetScores(){
+  if(!confirm(
+    "⚠️ ยืนยันรีเซ็ตคะแนนพนักงานทั้งหมด?\n\n"+
+    "• คะแนนและ level ของทุกคนจะกลับเป็น 0 / Silver\n"+
+    "• ใช้ตอนเริ่มรอบการประเมินใหม่\n"+
+    "• ไม่สามารถกู้คืนได้"
+  ))return;
+  STAFF.forEach(s=>{s.score=0;s.level="Silver";});
+  await fbSet(`staffScores`,STAFF.reduce((acc,s)=>({...acc,[s.id]:{score:0,level:"Silver"}}),{}));
+  addN("🔄 รีเซ็ตคะแนนพนักงานทั้งหมดแล้ว");render();
+}
 async function saveSettings(){await fbSet(`settings/appSettings`,{...ST.settings});}
 async function reqNotifPerm(){if(!("Notification" in window)){alert("เบราว์เซอร์นี้ไม่รองรับ");return;}const p=await Notification.requestPermission();if(p==="granted"){new Notification("🐱 Mori Staff Check",{body:"เปิดใช้การแจ้งเตือนแล้วค่ะ!"});}render();}
 
