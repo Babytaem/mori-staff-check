@@ -1200,24 +1200,26 @@ async function saveDamage(){
 function prevCatP(inp,cat){const files=Array.from(inp.files);files.forEach(file=>{const r=new FileReader();r.onload=e=>{if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catLogs[cat].photoPreviews)ST.catLogs[cat].photoPreviews=[];if(!ST.catLogs[cat].photoFiles)ST.catLogs[cat].photoFiles=[];ST.catLogs[cat].photoPreviews.push(e.target.result);ST.catLogs[cat].photoFiles.push(file);render();};r.readAsDataURL(file);});}
 function openCat(cat){if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catCheckItems[cat])ST.catCheckItems[cat]={};ST.catModal=cat;ST.catCheckError=null;render();}
 
-// ▼▼▼ CHANGE #2: trySaveCat — validate ก่อน แล้วอ่านค่า DOM ก่อน modal ปิด
+// validate ก่อน save — ไม่ปิด modal ถ้ายังไม่ครบ
 function trySaveCat(cat){
   const itemsOk=catCheckComplete(cat);
   const photoOk=(ST.catLogs[cat]?.photoPreviews||[]).length>0;
   if(!itemsOk){ST.catCheckError="items";const mc=document.querySelector('.mc');if(mc)mc.scrollTop=0;render();return;}
   if(!photoOk){ST.catCheckError="photo";render();return;}
   ST.catCheckError=null;
-  // อ่านค่า DOM ก่อนที่ modal จะปิด/re-render
+  saveCat(cat);
+}
+
+async function saveCat(cat){
+  const log=ST.catLogs[cat]||{};
+  // อ่านค่า DOM ขณะที่ modal ยังเปิดอยู่
   const note=document.getElementById("catNote")?.value||"";
   const detail=document.getElementById("abnDetail")?.value||"";
   const urg=document.getElementById("urgency")?.value||"";
-  saveCat(cat,note,detail,urg);
-}
-
-// ▼▼▼ CHANGE #1+2: saveCat — รับ note/detail/urg เป็น param แทนอ่านจาก DOM
-async function saveCat(cat,note="",detail="",urg=""){
-  const log=ST.catLogs[cat]||{};
-  ST.syncing=true;render();
+  ST.syncing=true;
+  // ปิด modal หลังอ่านค่าแล้ว
+  ST.catModal=null;
+  render();
   const photoFiles=log.photoFiles||[];
   const urls=await Promise.all(photoFiles.map(f=>upload(f)));
   const validUrls=urls.filter(Boolean);const photoUrl=validUrls.join(",");
