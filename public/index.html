@@ -997,8 +997,8 @@ function main(){
           <input type="checkbox" id="abnCb" ${log.abnormal?"checked":""} onchange="ST.catLogs['${cat}']={...ST.catLogs['${cat}']||{},abnormal:this.checked};render()" style="width:20px;height:20px;margin:0;cursor:pointer;flex-shrink:0"/>
           <label for="abnCb" style="font-size:13px;font-weight:500;cursor:pointer;color:${log.abnormal?"#A32D2D":"#2C2C2A"}">พบความผิดปกติ (แจ้งเพิ่มเติม)</label>
         </div>
-        ${log.abnormal?`<div style="background:#FCEBEB;border-radius:10px;padding:10px;margin-bottom:8px"><textarea id="abnDetail" placeholder="รายละเอียด..." style="margin-bottom:8px;height:50px;border:.5px solid #F4C0D1">${log.abnormalDetail||""}</textarea><select id="urgency"><option>ความเร่งด่วน: ต่ำ</option><option>ความเร่งด่วน: กลาง</option><option>ความเร่งด่วน: สูง — แจ้งเจ้าของทันที!</option></select></div>`:""}
-        <textarea id="catNote" placeholder="หมายเหตุเพิ่มเติม..." style="margin-bottom:10px;height:50px">${log.note||""}</textarea>
+        ${log.abnormal?`<div style="background:#FCEBEB;border-radius:10px;padding:10px;margin-bottom:8px"><textarea id="abnDetail" placeholder="รายละเอียด..." style="margin-bottom:8px;height:50px;border:.5px solid #F4C0D1" oninput="ST.catDetail=this.value">${ST.catDetail||log.abnormalDetail||""}</textarea><select id="urgency" onchange="ST.catUrg=this.value"><option ${(ST.catUrg||log.urgency||"")==="ความเร่งด่วน: ต่ำ"?"selected":""}>ความเร่งด่วน: ต่ำ</option><option ${(ST.catUrg||log.urgency||"")==="ความเร่งด่วน: กลาง"?"selected":""}>ความเร่งด่วน: กลาง</option><option ${(ST.catUrg||log.urgency||"")==="ความเร่งด่วน: สูง — แจ้งเจ้าของทันที!"?"selected":""}>ความเร่งด่วน: สูง — แจ้งเจ้าของทันที!</option></select></div>`:""}
+        <textarea id="catNote" placeholder="หมายเหตุเพิ่มเติม..." style="margin-bottom:10px;height:50px" oninput="ST.catNote=this.value">${ST.catNote||log.note||""}</textarea>
         <div style="margin-bottom:12px">
           <div style="font-size:12px;font-weight:500;color:#A32D2D;margin-bottom:6px">📸 ถ่ายรูปแมว${needWipe?" (รูปตัวที่เช็ด + รูปถุงมือ บังคับ 2 รูป)":"(บังคับ ถ่ายได้หลายรูป)"}</div>
           <input type="file" id="catFile" accept="image/*" capture="environment" multiple style="display:none" onchange="prevCatP(this,'${cat}')"/>
@@ -1198,7 +1198,7 @@ async function saveDamage(){
 }
 
 function prevCatP(inp,cat){const files=Array.from(inp.files);files.forEach(file=>{const r=new FileReader();r.onload=e=>{if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catLogs[cat].photoPreviews)ST.catLogs[cat].photoPreviews=[];if(!ST.catLogs[cat].photoFiles)ST.catLogs[cat].photoFiles=[];ST.catLogs[cat].photoPreviews.push(e.target.result);ST.catLogs[cat].photoFiles.push(file);render();};r.readAsDataURL(file);});}
-function openCat(cat){if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catCheckItems[cat])ST.catCheckItems[cat]={};ST.catModal=cat;ST.catCheckError=null;render();}
+function openCat(cat){if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catCheckItems[cat])ST.catCheckItems[cat]={};ST.catModal=cat;ST.catCheckError=null;ST.catNote="";ST.catDetail="";ST.catUrg="";render();}
 
 // validate ก่อน save — ไม่ปิด modal ถ้ายังไม่ครบ
 function trySaveCat(cat){
