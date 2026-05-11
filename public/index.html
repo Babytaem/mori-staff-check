@@ -737,7 +737,10 @@ function main(){
       <div class="sec">🔴 รีเซ็ตข้อมูล (Owner เท่านั้น)</div>
       <div class="card" style="border:.5px solid #F4C0D1">
         <div style="font-size:11px;color:#A32D2D;background:#FFF5F5;border-radius:8px;padding:8px;margin-bottom:10px">⚠️ ทุกปุ่มจะขอยืนยันก่อนเสมอ และไม่สามารถกู้คืนได้</div>
-        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px">📋 งาน</div>
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px">⏰ เช็คอิน/เช็คเอาต์</div>
+        <button onclick="resetAttendanceToday()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">🔄 รีเซ็ตเช็คอิน/เช็คเอาต์ทุกคน<br><span style="font-size:10px;font-weight:400">พนักงานทุกคนกลับเป็น "ยังไม่เข้างาน"</span></button>
+        <button onclick="resetMyAttendance()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">🔄 รีเซ็ตเช็คอิน/เช็คเอาต์ของตัวเอง<br><span style="font-size:10px;font-weight:400">ใช้เมื่อเช็คอินผิดหรือต้องการแก้ไข</span></button>
+        <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px;margin-top:4px">📋 งาน</div>
         <button onclick="resetTodayTasks()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">🔄 รีเซ็ตงานทั้งวัน<br><span style="font-size:10px;font-weight:400">งานทุกรายการกลับเป็น "ยังไม่ทำ"</span></button>
         <div style="font-size:12px;font-weight:500;color:#5F5E5A;margin-bottom:6px;margin-top:4px">🐱 แมว</div>
         <button onclick="resetCatHealth()" class="btn" style="background:#FCEBEB;color:#A32D2D;margin-top:0;padding:10px;margin-bottom:6px">🔄 รีเซ็ตข้อมูลสุขภาพแมววันนี้<br><span style="font-size:10px;font-weight:400">ล้างผลเช็คแมวทุกตัวของวันนี้</span></button>
