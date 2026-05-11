@@ -234,7 +234,8 @@ function getWeekISO(){
 const weekISO=getWeekISO();
 
 function mkTask(prefix,names,round,deadline,cat){return names.map((n,i)=>({id:`${prefix}${i}`,name:n,round,deadline,category:cat,assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));}
-let TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
+let   TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
+  fixTaskAssignees();
 fixTaskAssignees();
 // ✅ DAILY_TASKS สร้างจาก DAILY_LIST พร้อม deadline แต่ละงาน
 let DAILY_TASKS=DAILY_LIST.map((item,i)=>({
@@ -359,14 +360,40 @@ async function loadState(){
 }
 
 function startListening(){
-  fbListen(`attendance/${todayISO}`,(att)=>{if(!att)return;Object.entries(att).forEach(([name,d])=>{const s=STAFF.find(x=>x.name===name);if(s){s.checkIn=d.checkIn||null;s.checkOut=d.checkOut||null;s.status=d.status||"ยังไม่เข้างาน";s.checkInPhoto=d.photoUrl||null;s.checkOutPhoto=d.checkOutPhotoUrl||null;}});ST.fbConnected=true;render();});
+  fbListen(`attendance/${todayISO}`,(att)=>{
+    if(!att)return;
+    Object.entries(att).forEach(([name,d])=>{
+      const s=STAFF.find(x=>x.name===name);
+      if(s){s.checkIn=d.checkIn||null;s.checkOut=d.checkOut||null;s.status=d.status||"ยังไม่เข้างาน";s.checkInPhoto=d.photoUrl||null;s.checkOutPhoto=d.checkOutPhotoUrl||null;}
+    });
+    ST.fbConnected=true;render();
+  });
   fbListen(`tasks/${todayISO}`,(tasks)=>{if(!tasks)return;Object.entries(tasks).forEach(([id,d])=>updateAllArr(id,d));render();});
   fbListen(`weeklyTasks/${weekISO}`,(wk)=>{if(!wk)return;Object.entries(wk).forEach(([id,d])=>updateAllArr(id,d));render();});
-  fbListen(`catHealth/${todayISO}`,(cats)=>{if(!cats)return;Object.entries(cats).forEach(([name,d])=>{ST.catLogs[name]=d;if(d.checkItems)ST.catCheckItems[name]=d.checkItems;});render();});
+
+  // ✅ แก้: ฟัง catHealth ทั้ง node — trigger ทุกครั้งที่มีแมวตัวใดถูกบันทึก
+  fbListen(`catHealth/${todayISO}`,(cats)=>{
+    // ถ้า node ว่าง (null) = รีเซ็ตแล้ว ล้าง local state
+    if(!cats){ST.catLogs={};ST.catCheckItems={};render();return;}
+    Object.entries(cats).forEach(([name,d])=>{
+      ST.catLogs[name]=d;
+      if(d.checkItems) ST.catCheckItems[name]=d.checkItems;
+    });
+    render();
+  });
+
   fbListen(`leaveRequests`,(leaves)=>{if(!leaves)return;ST.leaveRequests=Object.entries(leaves).map(([id,d])=>({id,...d}));render();});
   fbListen(`settings/holidayMode`,(v)=>{if(v!==null&&ST.holidayMode!==v){ST.holidayMode=v;render();}});
-  fbListen(`kittenLogs/${todayISO}`,(kl)=>{if(!kl)return;Object.entries(kl).forEach(([kid,arr])=>{ST.kittenLogs[kid]=Array.isArray(arr)?arr:Object.values(arr)||[];});render();});
-  fbListen(`damageLogs/${todayISO}`,(dl)=>{if(!dl)return;ST.damageLogs=Array.isArray(dl)?dl:Object.values(dl);render();});
+  fbListen(`kittenLogs/${todayISO}`,(kl)=>{
+    if(!kl){ST.kittenLogs={k1:[],k2:[],k3:[]};render();return;}
+    Object.entries(kl).forEach(([kid,arr])=>{ST.kittenLogs[kid]=Array.isArray(arr)?arr:Object.values(arr)||[];});
+    render();
+  });
+  fbListen(`damageLogs/${todayISO}`,(dl)=>{
+    if(!dl){ST.damageLogs=[];render();return;}
+    ST.damageLogs=Array.isArray(dl)?dl:Object.values(dl);
+    render();
+  });
 }
 
 function mockAI(){const s=[92,87,76,88,95,71,83][Math.floor(Math.random()*7)];const n=["ดูสะอาดเรียบร้อยดี","พบคราบเล็กน้อย แนะนำเช็ดซ้ำ","ภาพมืดเกินไป ถ่ายใหม่","รูปชัดเจน ผ่านเกณฑ์","พบขนแมว แนะนำเช็ดเพิ่ม"][Math.floor(Math.random()*5)];return{score:s,status:s>=80?"ผ่าน":s>=65?"ควรตรวจซ้ำ":"ไม่ผ่าน",note:n};}
