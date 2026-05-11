@@ -630,8 +630,9 @@ function main(){
       const eff=getEffStatus(t);const isLate=(eff==="เลยเวลา"&&t.status==="ยังไม่ทำ");const sent=t.status!=="ยังไม่ทำ";const showBadge=sent?t.status:(isLate?"เลยเวลา":"ยังไม่ทำ");
       const photoCount=t.photoUrl?t.photoUrl.split(",").filter(Boolean).length:0;
       const extra=ST.taskExtraData[t.id];
-      // ✅ แสดง deadline สีแดงสำหรับงานรายวันที่มีกำหนดเวลา
       const hasDeadlineWarn=t.category==="daily"&&t.deadline&&t.deadline!=="ก่อนเลิกงาน"&&t.deadline!=="ตามเวลาที่กำหนด";
+      // ✅ แสดง submittedBy ถ้าต่างจาก assignee
+      const showSubmittedBy=t.submittedBy&&t.submittedBy!==t.assignee;
       return`<div class="tr" onclick="openT('${t.id}')">
         <div style="flex:1;margin-right:8px">
           <div style="font-size:12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
@@ -643,7 +644,11 @@ function main(){
           ${t.deadline==="ตามเวลาที่กำหนด"?`<div style="font-size:10px;color:#BA7517;margin-top:1px">⏰ ตามเวลาที่กำหนด</div>`:""}
           ${extra?.iceChoice?`<div style="font-size:10px;color:#185FA5">🧊 ${extra.iceChoice}</div>`:""}
           ${t.note?`<div style="font-size:10px;color:#5F5E5A;margin-top:1px">💬 ${t.note}</div>`:""}
-          <div style="font-size:10px;color:#5F5E5A;margin-top:1px">${t.assignee||""}${t.submittedAt?` · ส่ง ${t.submittedAt}`:""}</div>
+          <div style="font-size:10px;color:#5F5E5A;margin-top:1px">
+            ${t.assignee?`👤 ${t.assignee}`:""}
+            ${showSubmittedBy?`<span style="color:#993556"> · ✍️ บันทึกโดย ${t.submittedBy}</span>`:""}
+            ${t.submittedAt?` · ส่ง ${t.submittedAt}`:""}
+          </div>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
           ${photoCount>0?`<span style="font-size:10px;color:#185FA5">📸${photoCount}</span>`:""}
