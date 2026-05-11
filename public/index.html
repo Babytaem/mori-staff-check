@@ -116,8 +116,8 @@ function startClock(){
       location.reload();return;
     }
 
-    // ✅ ถ้าตี 3:30+ และยังไม่ได้ reset วันนี้ → reset แล้ว reload
-    if((h===3&&m>=30)||h>3){
+    // ✅ reset ได้เฉพาะช่วง ตี 3:30 - 3:59 เท่านั้น!
+    if(h===3&&m>=30){
       const resetKey=`mori_reset_${todayISO}`;
       if(localStorage.getItem(resetKey)!=="done"){
         autoResetAtNight().then(()=>{
@@ -1718,22 +1718,9 @@ function exportCSV(){
   a.click();
 }
 
-// BOOT — ตรวจ reset ตั้งแต่ตอนโหลด
+// BOOT
 document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🐱</div><div style="font-size:13px;color:#5F5E5A;margin-top:8px">กำลังโหลด...</div></div>`;
-
-// ✅ ตรวจตอนเปิดแอป: ถ้าเลยตี 3:30 แล้วยังไม่ได้ reset → reset ก่อน loadState
-async function bootWithReset(){
-  const now=thaiNow();
-  const h=now.getHours(),m=now.getMinutes();
-  const resetKey=`mori_reset_${todayISO}`;
-  const pastResetTime=(h===3&&m>=30)||(h>3&&h<12); // ตี 3:30 ถึงเที่ยง = ช่วงวันใหม่
-  if(pastResetTime && localStorage.getItem(resetKey)!=="done"){
-    document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🔄</div><div style="font-size:13px;color:#993556;margin-top:8px;font-weight:500">กำลังเริ่มวันใหม่...</div><div style="font-size:11px;color:#888780;margin-top:4px">รีเซ็ตข้อมูลตี 3:30</div></div>`;
-    await autoResetAtNight();
-  }
-  loadState();
-}
-bootWithReset();
+loadState();
 </script>
 </body>
 </html>
