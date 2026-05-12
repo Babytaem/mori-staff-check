@@ -74,7 +74,28 @@ function fmtTime(d){return d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"
 function fmtDate(d){return d.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});}
 function fmtISO(d){const off=7*60,loc=new Date(d.getTime()+off*60000);return loc.toISOString().slice(0,10);}
 
+// ── WORK DATE: 00:00–06:59 ยังนับเป็นวันเดิม, 07:00+ ขึ้นวันใหม่ ──
+function getWorkDate(d){
+  const h=d.getHours();
+  if(h<7){const prev=new Date(d);prev.setDate(prev.getDate()-1);return fmtISO(prev);}
+  return fmtISO(d);
+}
+function getWorkDow(d){
+  const h=d.getHours();
+  if(h<7){const prev=new Date(d);prev.setDate(prev.getDate()-1);return prev.getDay();}
+  return d.getDay();
+}
 
+let _now=thaiNow();
+let todayISO=getWorkDate(_now);
+let todayDow=getWorkDow(_now);
+
+function getWeekISO(){
+  const base=new Date(todayISO+'T12:00:00+07:00');
+  base.setHours(0,0,0,0);
+  const day=base.getDay(),diff=base.getDate()-day+(day===0?-6:1);base.setDate(diff);return fmtISO(base);
+}
+const weekISO=getWeekISO();
 
 let _clockInt=null;
 function startClock(){
@@ -119,9 +140,6 @@ const ROUNDS=[
   ]}
 ];
 
-// ── การเปลี่ยนแปลง #3: เอา "เช็ดตามผนัง" ออกจากทุกรอบ ──
-// (ทำตอน build TASKS แทนการแก้ ROUNDS เพื่อไม่กระทบ UI ที่แสดงชื่อรอบ)
-
 const DAILY_LIST=[
   {name:"เปิดหน้าร้าน",deadline:"12:00"},
   {name:"เช็คความเรียบร้อยก่อนเปิดร้าน",deadline:"12:00"},
@@ -141,20 +159,16 @@ const DAILY_LIST=[
   {name:"ปิดหน้าร้าน",deadline:""},
   {name:"ทำความสะอาดห้องน้ำ",deadline:""},
   {name:"ทำความสะอาดห้องแมวเล็กรอบเย็น",deadline:""},
-  // ── การเปลี่ยนแปลง #1: เอา "เช็คสต็อกของ" ออก ──
 ];
-// ── การเปลี่ยนแปลง #1: เอา "เช็คสต็อคทุกอย่าง" ออกจาก BARISTA_LIST ──
 const BARISTA_LIST=[{t:"11:30",n:"เปิดรั้ว/เปิดน้ำเด็ก/จัดโต๊ะหน้าร้าน"},{t:"11:40",n:"ดูดฝุ่น + ถูพื้น"},{t:"11:50",n:"เปิดไฟตู้เค้ก เรียงของ"},{t:"11:55",n:"เช็คความพร้อมทุกอย่างก่อนเปิดร้าน"},{t:"12:15",n:"เช็ดกระจกโซนห้องชงน้ำ"},{t:"12:25",n:"ทำความสะอาดแก้ว และเติมน้ำบนศาล (ส่งรูป)"},{t:"23:50",n:"เช็คเคลียร์เคาน์เตอร์"}];
 
 const PAINT_FREE=["จัดเก้าอี้ให้เรียบร้อย","เช็กสีเพ้นท์ครบทุกสี","เติมน้ำในแก้วล้างพู่กัน","เช็กพู่กันสะอาดพร้อมใช้","จัดจานสี","เติมทิชชู","เช็กผ้ากันเปื้อน","เช็กน้ำยาเคลือบเงา","เช็กของเพ้นท์ให้ครบ","เปิดไฟโซนเพ้นท์","จัดโชว์งานตัวอย่าง"];
-// ── การเปลี่ยนแปลง #2: เอา "เช็ดโต๊ะเพ้นท์" และ "เช็ดฝุ่นชั้นวาง" ออกจาก PAINT_FREE ──
 const PAINT_ROUNDS=[
   {time:"12:40",tasks:["ปัดฝุ่นโซนเพ้นท์","เช็ดอุปกรณ์ และเช็คอุปกรณ์ของหมด/ของครบ","เช็ดโต๊ะเพ้นท์","จัดระเบียบอุปกรณ์","จัดผ้าม่าน","เช็กความสะอาดหน้าร้าน"]},
   {time:"18:30",tasks:["ปัดฝุ่นโซนเพ้นท์","เช็ดอุปกรณ์ และเช็คอุปกรณ์ของหมด/ของครบ","เช็ดโต๊ะเพ้นท์","จัดระเบียบอุปกรณ์","จัดผ้าม่าน","เช็กความสะอาดหน้าร้าน"]}
 ];
 
 const BATHROOM_NAMES=["ประตูห้องน้ำทุกบาน","พื้นห้องน้ำ ด้านใน/นอก","โถส้วม","กระจก + ซิงค์ล้างมือ","กระดาษทิชชูใน/นอก","น้ำยาล้างมือ","จัดเรียงรองเท้าหน้าห้องน้ำ"];
-// ── การเปลี่ยนแปลง #1: เอา "เช็คสต็อกวัตถุดิบ" ออกจาก KITCHEN_NAMES ──
 const KITCHEN_NAMES=["กวาดพื้น + ถูพื้น","ดูดฝุ่น + เก็บขนแมว","เช็ดโต๊ะทั้งหมด","เช็คและทำความสะอาดเครื่องใช้ไฟฟ้า","จัดของ/เคลียร์ขยะ","เตรียมวัตถุดิบอาหาร"];
 const CATS=["โซจู","ดลใจ","วากิว","คุมะ","กอมเบ","โยชิ","ยูตะ","ชาไทย","บานอฟฟี่","น้ำตาล","นมสด","ทรัฟเฟิล","เลดี้","สโนว์","ชาแนล","ลาล่า","แพรพรรณ","คิวปิด","มัสตาร์ด","จินดี้","มะขาม","เจนนี่","นูเทลล่า","ข้าวพอง","เกรเทล","แซลลี่","รามิ","โรร่า","แคปหมู","อ่องปู","แพรไหม","แพรวา","มากิ","นิกิ","อากิ","โคลอี้","โมอา","โนอา","จินอา","ลีอา","ปีใหม่","คริสมาสต์"];
 const KITTENS=[{id:"k1",name:"ลูกแมว (ขาวแต้มเทา)",emoji:"🐱"},{id:"k2",name:"ลูกแมว (จมูกดำ)",emoji:"🐾"},{id:"k3",name:"ลูกแมว (ลายเสือ)",emoji:"🐯"}];
@@ -171,16 +185,6 @@ const WEEKLY_TASKS={
 };
 const DOW_TH=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
 
-let _now=thaiNow();
-let todayISO=fmtISO(_now);
-let todayDow=_now.getDay();
-function getWeekISO(){
-  const d=new Date(_now);d.setHours(0,0,0,0);
-  const day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff);return fmtISO(d);
-}
-const weekISO=getWeekISO();
-
-// ── การเปลี่ยนแปลง #3: filter "เช็ดตามผนัง" ออกตอน build TASKS ──
 function mkTask(prefix,names,round,deadline,cat){return names.map((n,i)=>({id:`${prefix}${i}`,name:n,round,deadline,category:cat,assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));}
 let TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.filter(t=>t!=="เช็ดตามผนัง").map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
 fixTaskAssignees();
@@ -199,11 +203,14 @@ let PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้
 let PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
 let WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));
 let WEEKLY_ALL=Object.entries(WEEKLY_TASKS).flatMap(([dow,tasks])=>tasks.map(t=>({...t,dow:parseInt(dow),dayName:DOW_TH[parseInt(dow)],status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true})));
+// หวีขน
+let GROOM_TASKS=CATS.map((c,i)=>({id:`gr${i}`,name:c,status:"",location:"",photoUrl:null,note:"",submittedAt:null,recordedBy:null}));
 
 function allTasks(){return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS,...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS];}
 function updateAllArr(id,patch){const upd=arr=>arr.map(t=>t.id===id?{...t,...patch}:t);TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);PAINT_FREE_TASKS=upd(PAINT_FREE_TASKS);PAINT_ROUND_TASKS=upd(PAINT_ROUND_TASKS);WEEKLY_TODAY=upd(WEEKLY_TODAY);WEEKLY_ALL=upd(WEEKLY_ALL);}
 function resetAllTasks(){
   TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.filter(t=>t!=="เช็ดตามผนัง").map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
+  fixTaskAssignees();
   DAILY_TASKS=DAILY_LIST.map((item,i)=>({id:`d${i}`,name:item.name,round:"รายวัน",deadline:item.deadline||"ก่อนเลิกงาน",category:"daily",assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));
   BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));
   BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");
@@ -218,7 +225,7 @@ function isTimePast(hhmm){
   const[h,m]=hhmm.split(":").map(Number);
   const n=thaiNow();const nowH=n.getHours(),nowM=n.getMinutes();
   const nowMins=nowH*60+nowM;const taskMins=h*60+m;
-  const taskIsAfterMidnight=h<4;const nowIsDay=nowH>=4;
+  const taskIsAfterMidnight=h<7;const nowIsDay=nowH>=7;
   if(taskIsAfterMidnight&&nowIsDay)return false;
   return nowMins>taskMins;
 }
@@ -249,7 +256,10 @@ const ST={
   damageLogs:[],
   kittenFormError:[],
   catCheckError:null,
+  groomModal:null,
+  groomPhotos:{},
 };
+
 
 const KITTEN_REQUIRED=[
   {key:"milk",label:"🍼 กินนมแม่ไหม"},
@@ -268,6 +278,8 @@ async function loadState(){
     if(att){Object.entries(att).forEach(([name,d])=>{const s=STAFF.find(x=>x.name===name);if(s){s.checkIn=d.checkIn||null;s.checkOut=d.checkOut||null;s.status=d.status||"ยังไม่เข้างาน";s.checkInPhoto=d.photoUrl||null;s.checkOutPhoto=d.checkOutPhotoUrl||null;}});}
     const tasks=await fbGet(`tasks/${todayISO}`);
     if(tasks){Object.entries(tasks).forEach(([id,d])=>updateAllArr(id,d));}
+    const grm=await fbGet(`groomTasks/${todayISO}`);
+    if(grm){Object.entries(grm).forEach(([id,d])=>{const g=GROOM_TASKS.find(x=>x.id===id);if(g)Object.assign(g,d);});}
     const wk=await fbGet(`weeklyTasks/${weekISO}`);
     if(wk){Object.entries(wk).forEach(([id,d])=>updateAllArr(id,d));}
     const cats=await fbGet(`catHealth/${todayISO}`);
@@ -297,6 +309,7 @@ function startListening(){
     ST.fbConnected=true;render();
   });
   fbListen(`tasks/${todayISO}`,(tasks)=>{if(!tasks)return;Object.entries(tasks).forEach(([id,d])=>updateAllArr(id,d));render();});
+  fbListen(`groomTasks/${todayISO}`,(grm)=>{if(!grm)return;Object.entries(grm).forEach(([id,d])=>{const g=GROOM_TASKS.find(x=>x.id===id);if(g)Object.assign(g,d);});render();});
   fbListen(`weeklyTasks/${weekISO}`,(wk)=>{if(!wk)return;Object.entries(wk).forEach(([id,d])=>updateAllArr(id,d));render();});
   fbListen(`catHealth/${todayISO}`,(cats)=>{
     if(!cats){ST.catLogs={};ST.catCheckItems={};render();return;}
@@ -331,7 +344,13 @@ function bc(st){
 function addN(msg,urgent=false){ST.notifs.unshift({id:Date.now(),msg,time:fmtTime(thaiNow()),read:false,urgent});if(urgent&&ST.settings.notifTask&&typeof Notification!=="undefined"&&Notification.permission==="granted"){new Notification("🐱 Mori",{body:msg});}}
 function tStat(arr){return{total:arr.length,done:arr.filter(t=>t.status==="ผ่าน").length,pending:arr.filter(t=>t.status==="รอตรวจ").length,todo:arr.filter(t=>t.status==="ยังไม่ทำ").length,rej:arr.filter(t=>["ตีกลับ","เลยเวลา","ลืมงาน"].includes(t.status)).length,late:arr.filter(t=>t.status==="ยังไม่ทำ"&&isTimePast(t.deadline)).length};}
 function catStat(){const v=Object.values(ST.catLogs).filter(l=>l?.status);return{total:CATS.length,checked:v.length,passed:v.filter(l=>l.status==="ผ่าน").length,pending:v.filter(l=>l.status==="รอตรวจ").length,abnormal:v.filter(l=>l.abnormal).length};}
-function manualRefresh(){_now=thaiNow();todayISO=fmtISO(_now);todayDow=_now.getDay();render();}
+
+function manualRefresh(){
+  _now=thaiNow();
+  todayISO=getWorkDate(_now);
+  todayDow=getWorkDow(_now);
+  render();
+}
 
 function optBtn(key,opts,errs){
   const f=ST.kittenForm;const hasErr=errs&&errs.includes(key);
@@ -567,7 +586,7 @@ function main(){
         </div>
       </div>`;
     }
-    const tabs=[["round","รอบงาน"],["daily","รายวัน"],["barista","บาริสต้า"],["paint","🎨เพ้นท์"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"],["weekly","รายสัปดาห์"]];
+    const tabs=[["round","รอบงาน"],["daily","รายวัน"],["barista","บาริสต้า"],["paint","🎨เพ้นท์"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"],["weekly","รายสัปดาห์"],["groom","🪮หวีขน"]];
     content=`<div class="pad">
       <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${ST.taskTab===k?"active":""}" onclick="ST.taskTab='${k}';render()">${l}</button>`).join("")}</div>
       ${ST.taskTab==="round"?ROUNDS.map((r,ri)=>{const rt=TASKS.filter(t=>t.round===r.time);const dn=rt.filter(t=>["ผ่าน","รอตรวจ"].includes(t.status)).length;const rLate=isTimePast(r.time);const is12=r.time==="12:00";return`<div class="card" style="${is12?"border:.5px solid #D85A30":""}"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><b style="${rLate?"color:#A32D2D":is12?"color:#D85A30":""}">รอบ ${r.time}${rLate?" ⚠️":""}${is12?" 🍗🧊":""}</b><span style="font-size:11px;color:#5F5E5A">${dn}/${rt.length}</span></div>${is12?`<div style="font-size:10px;color:#D85A30;margin-bottom:4px">⚠️ ต้มไก่ต้องเสร็จก่อน 12:00!</div>`:""}<div class="pb2"><div class="pf" style="width:${rt.length?Math.round(dn/rt.length*100):0}%;background:${dn===rt.length?"#639922":is12?"#D85A30":"#993556"}"></div></div>${rt.map(t=>taskRow(t)).join("")}</div>`;}).join(""):""}
@@ -583,6 +602,34 @@ function main(){
       ${ST.taskTab==="weekly"?`<div class="card" style="background:#F0EEF9;border:.5px solid #C4BEF0"><div style="font-size:12px;font-weight:500;color:#5B4FCF">📅 รีเซ็ตทุกวันอาทิตย์ · สัปดาห์: ${weekISO}</div><div style="font-size:11px;color:#5B4FCF;margin-top:3px">⚠️ งานสต็อคต้องถ่ายรูปใบสต็อค ถ่ายได้หลายรูป</div></div>
         ${WEEKLY_TODAY.length>0?`<div class="sec">วัน${DOW_TH[todayDow]}นี้</div><div class="card">${WEEKLY_TODAY.map(t=>taskRow(t)).join("")}</div>`:`<div class="card" style="text-align:center;color:#888780;font-size:12px;padding:14px">ไม่มีงานวัน${DOW_TH[todayDow]}</div>`}
         <div class="sec">งานทุกวันในสัปดาห์</div>${[0,1,2,4,5].map(dow=>{const dT=WEEKLY_ALL.filter(t=>t.dow===dow);if(!dT.length)return"";const isToday=dow===todayDow;return`<div class="card" style="${isToday?"border:.5px solid #5B4FCF":""}"><div style="font-size:12px;font-weight:500;color:${isToday?"#5B4FCF":"#5F5E5A"};margin-bottom:6px">${isToday?"📍":""}วัน${DOW_TH[dow]}</div>${dT.map(t=>taskRow(t)).join("")}</div>`;}).join("")}`:""}
+      ${ST.taskTab==="groom"?`
+        <div style="background:#FCEBEB;border-radius:12px;padding:12px;margin-bottom:12px;border:.5px solid #F4C0C0">
+          <div style="font-size:13px;font-weight:700;color:#A32D2D;margin-bottom:6px">🪮 หวีขนละเอียด — อ่านก่อนเริ่มงาน</div>
+          <div style="font-size:12px;color:#A32D2D;line-height:1.6">ให้หวีขนละเอียดและจริงจัง งานนี้ไม่รวมอยู่ในงานที่ต้องหวีก่อนปล่อยทุกวัน แต่หมายถึงทุกตัวต้องได้รับการหวีอย่างละเอียดค่ะ ตัวที่มีสังกะตังและขนจับตัวเป็นก้อน ทำให้ต้องรักษาหวีและดูแลทุกวันเพื่อป้องกันก่อนเกิดเหตุค่ะ</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;color:#5F5E5A">หวีแล้ว ${GROOM_TASKS.filter(g=>g.status).length}/${GROOM_TASKS.length} ตัว</div>
+          <div style="display:flex;gap:4px">
+            <span class="badge" style="background:#EAF3DE;color:#639922">${GROOM_TASKS.filter(g=>g.status==="ปล่อยห้องคาเฟ่").length} คาเฟ่</span>
+            <span class="badge" style="background:#E6F1FB;color:#185FA5">${GROOM_TASKS.filter(g=>g.status==="อยู่ในห้องเล็ก").length} ห้องเล็ก</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${GROOM_TASKS.map((g,i)=>{
+            const isSpec=SPECIAL.includes(g.name),needWipe=SPECIAL_WIPE.includes(g.name);
+            const col=g.status==="ปล่อยห้องคาเฟ่"?"#EAF3DE":g.status==="อยู่ในห้องเล็ก"?"#E6F1FB":"#fff";
+            const bc2=g.status==="ปล่อยห้องคาเฟ่"?"#C8E6A0":g.status==="อยู่ในห้องเล็ก"?"#B3D4F5":"#E8E3DA";
+            const pc=g.photoUrl?g.photoUrl.split(",").filter(Boolean).length:0;
+            return`<div onclick="openGroom('${g.id}')" style="background:${col};border:.5px solid ${bc2};border-radius:10px;padding:8px 10px;cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <span style="font-size:12px">${needWipe?"🧤":isSpec?"⭐":""} ${g.name}</span>
+                <span style="font-size:10px;color:#5F5E5A">#${i+1}</span>
+              </div>
+              ${g.status?`<div style="margin-top:3px"><span class="badge" style="background:${g.status==="ปล่อยห้องคาเฟ่"?"#639922":"#185FA5"};color:#fff;font-size:9px;padding:1px 5px">${g.status==="ปล่อยห้องคาเฟ่"?"🏠 คาเฟ่":"🏡 ห้องเล็ก"}</span></div>`:`<div style="font-size:10px;color:#888780;margin-top:2px">ยังไม่หวี</div>`}
+              ${pc>0?`<div style="font-size:9px;color:#185FA5;margin-top:1px">📸 ${pc} รูป</div>`:""}
+              ${g.note?`<div style="font-size:9px;color:#5F5E5A;margin-top:1px">💬 ${g.note}</div>`:""}
+            </div>`;}).join("")}
+        </div>`:""}
     </div>`;
   }
 
@@ -624,6 +671,7 @@ function main(){
             ${st?`<div style="margin-top:3px"><span class="badge" style="${bc(st)};font-size:9px;padding:1px 5px">${st}</span></div>`:`<div style="font-size:10px;color:#888780;margin-top:2px">ยังไม่เช็ค</div>`}
             ${l?.recordedBy?`<div style="font-size:9px;color:#185FA5;margin-top:2px">👤 ${l.recordedBy}</div>`:""}
             ${l?.photoUrl&&isAdmin?`<div style="font-size:9px;color:#185FA5;margin-top:1px">📸 ${l.photoUrl.split(",").filter(Boolean).length} รูป</div>`:""}
+            ${st==="ผ่าน"&&l?.checkItems?`<div style="margin-top:5px;border-top:.5px solid #E8E3DA;padding-top:5px">${Object.entries(l.checkItems).filter(([,v])=>v==="ผิดปกติ").map(([k])=>`<div style="font-size:9px;color:#A32D2D">⚠️ ${k}</div>`).join("")}${l.note?`<div style="font-size:9px;color:#5F5E5A;margin-top:2px">💬 ${l.note}</div>`:""}</div>`:""}
           </div>`;}).join("")}
       </div>
     </div>`;
@@ -751,6 +799,11 @@ function main(){
       <div class="card">${[["ค่าปรับมาสาย (฿)","lateFine"],["ค่าปรับงานเลยเวลา/งาน (฿)","noTaskFine"],["ค่าปรับเลิกเกินเวลา/ชม. (฿)","overtimeFine"]].map(([l,k])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid #E8E3DA"><span style="font-size:13px">${l}</span><input type="number" value="${ST.settings[k]}" ${!isAdmin?"disabled":""} onchange="ST.settings['${k}']=Number(this.value);saveSettings()" style="width:80px;text-align:right"/></div>`).join("")}</div>
       <div class="sec">Firebase</div>
       <div class="card" style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">🔥</span><div><div style="font-size:13px;font-weight:500">${ST.fbConnected?"เชื่อมต่อแล้ว ✅":"กำลังเชื่อมต่อ..."}</div></div>${ST.fbConnected?`<span class="online-dot" style="margin-left:auto"></span>`:""}</div>
+      <div class="sec">ℹ️ วันทำงานปัจจุบัน</div>
+      <div class="card" style="background:#F0EEF9;border:.5px solid #C4BEF0">
+        <div style="font-size:12px;color:#5B4FCF">📅 key Firebase: <b>${todayISO}</b></div>
+        <div style="font-size:11px;color:#5B4FCF;margin-top:4px">⏰ 00:00–06:59 = ยังนับเป็นวันเดิม | 07:00+ = ขึ้นวันใหม่</div>
+      </div>
     </div>`;
   }
 
@@ -939,7 +992,6 @@ function main(){
     const catPhotos=log.photoUrl?log.photoUrl.split(",").filter(Boolean):[];
     const checkItems=ST.catCheckItems[cat]||{};
     const itemsComplete=catCheckComplete(cat);
-    const hasPhotoPrev=(log.photoPreviews||[]).length>0;
     const catErr=ST.catCheckError;
     const missingItems=CAT_CHECK_ITEMS.filter(item=>!checkItems[item]||checkItems[item]==="");
     modal=`<div class="modal" onclick="if(event.target===this){ST.catModal=null;ST.catCheckError=null;render()}"><div class="mc">
@@ -948,7 +1000,7 @@ function main(){
         ${catSt?`<span class="badge" style="${bc(catSt)}">${catSt}</span>`:""}
       </div>
       <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">บันทึกสุขภาพ${log.time?` · เช็คล่าสุด ${log.time}`:""}${log.recordedBy?` · บันทึกโดย ${log.recordedBy}`:""}</div>
-      ${needWipe?`<div class="wb">🧤 เจนนี่ต้องเช็ดตัวทุกวัน! ถ่าย 2 รูป: ตัวที่เช็ดแล้ว + ถุงมือที่ใช้แล้ว</div>`:""}
+      ${needWipe?`<div class="wb">🧤 เจนนี่ต้องเช็ดตัวทุกวัน! ถ่าย 2 รูป: ตัวที่เช็ดแล้ว + รูปถุงมือที่ใช้แล้ว</div>`:""}
       ${catSt==="ผ่าน"?`<div style="background:#EAF3DE;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:#639922">✓ ผ่านแล้ว${log.reviewer?` · โดย ${log.reviewer}`:""}${log.recordedBy?` · บันทึกโดย ${log.recordedBy}`:""}</div>
         ${catPhotos.length>0?`<div style="margin-bottom:10px"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">📷 รูปที่บันทึก (${catPhotos.length} รูป):</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${catPhotos.map(u=>`<img src="${u}" style="width:100%;height:70px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${u}','_blank')"/>`).join("")}</div></div>`:""}`:""}
       ${catSt==="รอตรวจ"&&isAdmin?`<div style="background:#FAEEDA;border-radius:10px;padding:10px;margin-bottom:8px;font-size:12px;color:#BA7517">⏳ รอการอนุมัติ · โดย ${log.recordedBy||""}</div>
@@ -996,6 +1048,36 @@ function main(){
     </div></div>`;
   }
 
+  else if(ST.groomModal){
+    const g=GROOM_TASKS.find(x=>x.id===ST.groomModal);
+    if(g){
+      const photos=ST.groomPhotos[g.id]||[];
+      const existingPhotos=g.photoUrl?g.photoUrl.split(",").filter(Boolean):[];
+      const isSpec=SPECIAL.includes(g.name),needWipe=SPECIAL_WIPE.includes(g.name);
+      modal=`<div class="modal" onclick="if(event.target===this){ST.groomModal=null;render()}"><div class="mc">
+        <div style="font-weight:500;font-size:15px;margin-bottom:4px">🪮 ${needWipe?"🧤":isSpec?"⭐":""} ${g.name}</div>
+        <div style="font-size:11px;color:#5F5E5A;margin-bottom:10px">หวีขนละเอียด${g.submittedAt?` · บันทึกเมื่อ ${g.submittedAt}`:""}${g.recordedBy?` · โดย ${g.recordedBy}`:""}</div>
+        ${g.status?`<div style="background:${g.status==="ปล่อยห้องคาเฟ่"?"#EAF3DE":"#E6F1FB"};border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;font-weight:500;color:${g.status==="ปล่อยห้องคาเฟ่"?"#639922":"#185FA5"}">✓ ${g.status}</div>`:""}
+        ${g.note?`<div style="background:#F1EFE8;border-radius:8px;padding:6px 10px;font-size:11px;margin-bottom:8px">💬 ${g.note}</div>`:""}
+        ${existingPhotos.length>0?`<div style="margin-bottom:10px"><div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">📸 รูปที่บันทึก (${existingPhotos.length} รูป):</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${existingPhotos.map(u=>`<img src="${u}" style="width:100%;height:70px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${u}','_blank')"/>`).join("")}</div></div>`:""}
+        ${!g.status?`
+          <div style="font-size:12px;font-weight:500;color:#2C2C2A;margin-bottom:8px">📍 วันนี้แมวอยู่ที่ไหน?</div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button onclick="ST.groomPhotos['${g.id}']||(ST.groomPhotos['${g.id}']=[]);ST.groomLoc='ปล่อยห้องคาเฟ่';render()" style="flex:1;padding:12px 8px;border-radius:10px;border:.5px solid ${ST.groomLoc==='ปล่อยห้องคาเฟ่'?'#639922':'#E8E3DA'};background:${ST.groomLoc==='ปล่อยห้องคาเฟ่'?'#EAF3DE':'#fff'};color:${ST.groomLoc==='ปล่อยห้องคาเฟ่'?'#639922':'#2C2C2A'};cursor:pointer;font-family:inherit;font-size:13px;font-weight:500">🏠 ปล่อยห้องคาเฟ่</button>
+            <button onclick="ST.groomPhotos['${g.id}']||(ST.groomPhotos['${g.id}']=[]);ST.groomLoc='อยู่ในห้องเล็ก';render()" style="flex:1;padding:12px 8px;border-radius:10px;border:.5px solid ${ST.groomLoc==='อยู่ในห้องเล็ก'?'#185FA5':'#E8E3DA'};background:${ST.groomLoc==='อยู่ในห้องเล็ก'?'#E6F1FB':'#fff'};color:${ST.groomLoc==='อยู่ในห้องเล็ก'?'#185FA5':'#2C2C2A'};cursor:pointer;font-family:inherit;font-size:13px;font-weight:500">🏡 อยู่ในห้องเล็ก</button>
+          </div>
+          <div class="wb">⚠️ ถ่ายรูปหลังหวีขนทุกครั้ง</div>
+          <input type="file" id="grFile" accept="image/*" capture="environment" multiple style="display:none" onchange="handleGrP(this)"/>
+          ${photos.length>0?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">${photos.map((p,i)=>`<div style="position:relative"><img src="${p.preview}" style="width:100%;height:70px;object-fit:cover;border-radius:8px;display:block"/><button onclick="ST.groomPhotos['${ST.groomModal}'].splice(${i},1);render()" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:9px;cursor:pointer">✕</button></div>`).join("")}</div>
+          <button class="pb" onclick="document.getElementById('grFile').click()">+ เพิ่มรูป</button>`
+          :`<button class="pb" onclick="document.getElementById('grFile').click()">📷 ถ่ายรูปหลังหวีขน (บังคับ)</button>`}
+          <textarea id="grNote" placeholder="หมายเหตุ เช่น พบสังกะตัง, ขนจับตัว..." style="margin-bottom:8px;height:50px"></textarea>
+          ${ST.groomLoc&&photos.length>0?`<button class="btn" style="background:#993556;color:#fff;margin-top:0" onclick="saveGroom('${g.id}')">✅ บันทึกการหวีขน</button>`:`<div style="background:#F1EFE8;border-radius:10px;padding:10px;text-align:center;font-size:12px;color:#888780">เลือกสถานที่ + ถ่ายรูปก่อนบันทึก</div>`}
+        `:""}
+        <button class="btn" style="background:#F1EFE8;color:#888780" onclick="ST.groomModal=null;ST.groomLoc='';render()">ปิด</button>
+      </div></div>`;
+    }
+  }
   else if(ST.kittenHistModal){
     const k=KITTENS.find(x=>x.id===ST.kittenHistModal),logs=[...(ST.kittenLogs[k.id]||[])].reverse();
     modal=`<div class="modal" onclick="if(event.target===this){ST.kittenHistModal=null;render()}"><div class="mc">
@@ -1098,7 +1180,6 @@ async function doCO(){
 function openStaffModal(name){ST.staffModal=name;render();}
 function openT(id){ST.taskModal=id;ST.taskPhotos[id]=[];ST.taskAI=null;ST.taskAnalyzing=false;render();}
 function closeM(){ST.taskModal=null;ST.leaveModal=false;ST.fineModal=null;render();}
-function setExtra(id,key,val){if(!ST.taskExtraData[id])ST.taskExtraData[id]={};ST.taskExtraData[id][key]=val;fbUp(`taskExtra/${todayISO}`,{[id]:ST.taskExtraData[id]});render();}
 
 async function subT(id,isLate){
   const photos=ST.taskPhotos[id]||[];if(!photos.length)return;
@@ -1197,9 +1278,7 @@ async function saveCat(cat){
   const note=document.getElementById("catNote")?.value||"";
   const detail=document.getElementById("abnDetail")?.value||"";
   const urg=document.getElementById("urgency")?.value||"";
-  ST.syncing=true;
-  ST.catModal=null;
-  render();
+  ST.syncing=true;ST.catModal=null;render();
   const photoFiles=log.photoFiles||[];
   const urls=await Promise.all(photoFiles.map(f=>upload(f)));
   const validUrls=urls.filter(Boolean);const photoUrl=validUrls.join(",");
@@ -1247,6 +1326,22 @@ async function saveKitten(id){
   const k=KITTENS.find(x=>x.id===id);
   await gasPost("kittenLog",{date:todayISO,...logEntry,kittenName:k?.name||id,photoUrl:validUrls.join(","),photoCount:validUrls.length});
   ST.syncing=false;addN(`🍼 บันทึกลูกแมว ${k?.name||id} แล้ว`);render();
+}
+
+function openGroom(id){ST.groomModal=id;ST.groomLoc="";ST.groomPhotos[id]=[];render();}
+function handleGrP(inp){const files=Array.from(inp.files);files.forEach(file=>{const r=new FileReader();r.onload=e=>{if(!ST.groomPhotos[ST.groomModal])ST.groomPhotos[ST.groomModal]=[];ST.groomPhotos[ST.groomModal].push({preview:e.target.result,file});render();};r.readAsDataURL(file);});}
+async function saveGroom(id){
+  const photos=ST.groomPhotos[id]||[];if(!photos.length||!ST.groomLoc)return;
+  const note=document.getElementById("grNote")?.value||"";
+  const t=fmtTime(thaiNow());
+  ST.syncing=true;ST.groomModal=null;render();
+  const urls=await Promise.all(photos.map(p=>upload(p.file)));
+  const validUrls=urls.filter(Boolean);
+  const patch={status:ST.groomLoc,location:ST.groomLoc,photoUrl:validUrls.join(","),note,submittedAt:t,recordedBy:ST.loginUser.name};
+  const g=GROOM_TASKS.find(x=>x.id===id);if(g)Object.assign(g,patch);
+  await fbSet(`groomTasks/${todayISO}/${id}`,patch);
+  await gasPost("groomTask",{date:todayISO,catName:g?.name||id,location:ST.groomLoc,note,time:t,recordedBy:ST.loginUser.name,photoUrl:validUrls.join(",")});
+  ST.syncing=false;ST.groomLoc="";addN(`🪮 หวีขน ${g?.name||id} บันทึกแล้ว`);render();
 }
 
 async function resetAttendanceToday(){if(!confirm("⚠️ ยืนยันรีเซ็ตเช็คอิน/เช็คเอาต์วันนี้ทุกคน?\n\n• พนักงานทุกคนจะกลับเป็น 'ยังไม่เข้างาน'\n• ต้องเช็คอินใหม่ทุกคน\n• ประวัติใน Google Sheet ยังคงอยู่ครบถ้วน\n• ไม่กระทบข้อมูลค่าแรงที่บันทึกไปแล้ว"))return;ST.syncing=true;render();await fbDel(`attendance/${todayISO}`);STAFF.forEach(s=>{s.checkIn=null;s.checkOut=null;s.status="ยังไม่เข้างาน";s.checkInPhoto=null;s.checkOutPhoto=null;});ST.checkInPhoto=null;ST.checkOutPhoto=null;ST.syncing=false;addN("🔄 รีเซ็ตเช็คอิน/เช็คเอาต์ทุกคนแล้ว — ประวัติ Sheet ยังอยู่ครบ");render();}
@@ -1324,8 +1419,7 @@ function exportCSV(){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));a.download=`Mori-รายงาน-${todayISO}.csv`;a.click();
 }
 
-document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center
-height:100vh"><div style="font-size:40px">🐱</div><div style="font-size:13px;color:#5F5E5A;margin-top:8px">กำลังโหลด...</div></div>`;
+document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🐱</div><div style="font-size:13px;color:#5F5E5A;margin-top:8px">กำลังโหลด...</div></div>`;
 loadState();
 </script>
 </body>
