@@ -586,11 +586,39 @@ function main(){
         </div>
       </div>`;
     }
-    const tabs=[["round","รอบงาน"],["daily","รายวัน"],["barista","บาริสต้า"],["paint","🎨เพ้นท์"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"],["weekly","รายสัปดาห์"],["groom","🪮หวีขน"]];
+    const tabs=[["round","รอบงาน"],["daily","รายวัน"],["groom","🪮หวีขน"],["barista","บาริสต้า"],["paint","🎨เพ้นท์"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"],["weekly","รายสัปดาห์"]];
     content=`<div class="pad">
       <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${ST.taskTab===k?"active":""}" onclick="ST.taskTab='${k}';render()">${l}</button>`).join("")}</div>
       ${ST.taskTab==="round"?ROUNDS.map((r,ri)=>{const rt=TASKS.filter(t=>t.round===r.time);const dn=rt.filter(t=>["ผ่าน","รอตรวจ"].includes(t.status)).length;const rLate=isTimePast(r.time);const is12=r.time==="12:00";return`<div class="card" style="${is12?"border:.5px solid #D85A30":""}"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><b style="${rLate?"color:#A32D2D":is12?"color:#D85A30":""}">รอบ ${r.time}${rLate?" ⚠️":""}${is12?" 🍗🧊":""}</b><span style="font-size:11px;color:#5F5E5A">${dn}/${rt.length}</span></div>${is12?`<div style="font-size:10px;color:#D85A30;margin-bottom:4px">⚠️ ต้มไก่ต้องเสร็จก่อน 12:00!</div>`:""}<div class="pb2"><div class="pf" style="width:${rt.length?Math.round(dn/rt.length*100):0}%;background:${dn===rt.length?"#639922":is12?"#D85A30":"#993556"}"></div></div>${rt.map(t=>taskRow(t)).join("")}</div>`;}).join(""):""}
       ${ST.taskTab==="daily"?`<div class="card">${DAILY_TASKS.map(t=>taskRow(t)).join("")}</div>`:""}
+      ${ST.taskTab==="groom"?`
+        <div style="background:#FCEBEB;border-radius:12px;padding:12px;margin-bottom:12px;border:.5px solid #F4C0C0">
+          <div style="font-size:13px;font-weight:700;color:#A32D2D;margin-bottom:6px">🪮 หวีขนละเอียด — อ่านก่อนเริ่มงาน</div>
+          <div style="font-size:12px;color:#A32D2D;line-height:1.6">ให้หวีขนละเอียดและจริงจัง งานนี้ไม่รวมอยู่ในงานที่ต้องหวีก่อนปล่อยทุกวัน แต่หมายถึงทุกตัวต้องได้รับการหวีอย่างละเอียดค่ะ ตัวที่มีสังกะตังและขนจับตัวเป็นก้อน ทำให้ต้องรักษาหวีและดูแลทุกวันเพื่อป้องกันก่อนเกิดเหตุค่ะ</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;color:#5F5E5A">หวีแล้ว ${GROOM_TASKS.filter(g=>g.status).length}/${GROOM_TASKS.length} ตัว</div>
+          <div style="display:flex;gap:4px">
+            <span class="badge" style="background:#EAF3DE;color:#639922">${GROOM_TASKS.filter(g=>g.status==="ปล่อยห้องคาเฟ่").length} คาเฟ่</span>
+            <span class="badge" style="background:#E6F1FB;color:#185FA5">${GROOM_TASKS.filter(g=>g.status==="อยู่ในห้องเล็ก").length} ห้องเล็ก</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${GROOM_TASKS.map((g,i)=>{
+            const isSpec=SPECIAL.includes(g.name),needWipe=SPECIAL_WIPE.includes(g.name);
+            const col=g.status==="ปล่อยห้องคาเฟ่"?"#EAF3DE":g.status==="อยู่ในห้องเล็ก"?"#E6F1FB":"#fff";
+            const bc2=g.status==="ปล่อยห้องคาเฟ่"?"#C8E6A0":g.status==="อยู่ในห้องเล็ก"?"#B3D4F5":"#E8E3DA";
+            const pc=g.photoUrl?g.photoUrl.split(",").filter(Boolean).length:0;
+            return`<div onclick="openGroom('${g.id}')" style="background:${col};border:.5px solid ${bc2};border-radius:10px;padding:8px 10px;cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <span style="font-size:12px">${needWipe?"🧤":isSpec?"⭐":""} ${g.name}</span>
+                <span style="font-size:10px;color:#5F5E5A">#${i+1}</span>
+              </div>
+              ${g.status?`<div style="margin-top:3px"><span class="badge" style="background:${g.status==="ปล่อยห้องคาเฟ่"?"#639922":"#185FA5"};color:#fff;font-size:9px;padding:1px 5px">${g.status==="ปล่อยห้องคาเฟ่"?"🏠 คาเฟ่":"🏡 ห้องเล็ก"}</span></div>`:`<div style="font-size:10px;color:#888780;margin-top:2px">ยังไม่หวี</div>`}
+              ${pc>0?`<div style="font-size:9px;color:#185FA5;margin-top:1px">📸 ${pc} รูป</div>`:""}
+              ${g.note?`<div style="font-size:9px;color:#5F5E5A;margin-top:1px">💬 ${g.note}</div>`:""}
+            </div>`;}).join("")}
+        </div>`:""}
       ${ST.taskTab==="barista"?`<div class="card">${BARISTA_TASKS.map(t=>taskRow(t)).join("")}</div>`:""}
       ${ST.taskTab==="paint"?`
         <div class="card" style="background:#F3F0FC;border:.5px solid #C4BEF0;margin-bottom:8px"><div style="font-size:12px;font-weight:500;color:#7B5CF0">🎨 รอบกำหนดเวลา</div></div>
