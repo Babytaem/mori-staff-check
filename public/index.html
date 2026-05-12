@@ -74,22 +74,7 @@ function fmtTime(d){return d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"
 function fmtDate(d){return d.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});}
 function fmtISO(d){const off=7*60,loc=new Date(d.getTime()+off*60000);return loc.toISOString().slice(0,10);}
 
-async function autoResetAtNight(){
-  const resetKey=`mori_reset_${todayISO}`;
-  if(localStorage.getItem(resetKey)==="done"){return;}
-  console.log("🔄 Auto reset ตี 3:30 สำหรับวัน",todayISO);
-  try{
-    await fbDel(`tasks/${todayISO}`);
-    await fbDel(`catHealth/${todayISO}`);
-    await fbDel(`damageLogs/${todayISO}`);
-    await fbDel(`kittenLogs/${todayISO}`);
-    await fbDel(`taskExtra/${todayISO}`);
-    await fbDel(`attendance/${todayISO}`);
-    if(todayDow===0) await fbDel(`weeklyTasks/${weekISO}`);
-    localStorage.setItem(resetKey,"done");
-    console.log("✅ Auto reset เสร็จแล้ว");
-  }catch(e){console.error("reset error",e);}
-}
+
 
 let _clockInt=null;
 function startClock(){
@@ -99,15 +84,6 @@ function startClock(){
     ["liveClock","liveClock2"].forEach(id=>{
       const el=document.getElementById(id);if(el)el.textContent=fmtTime(now);
     });
-    const currentDate=fmtISO(now);
-    const h=now.getHours(),m=now.getMinutes();
-    if(currentDate!==todayISO){location.reload();return;}
-    if(h===3&&m>=30){
-      const resetKey=`mori_reset_${todayISO}`;
-      if(localStorage.getItem(resetKey)!=="done"){
-        autoResetAtNight().then(()=>{setTimeout(()=>location.reload(),2000);});
-      }
-    }
   },30000);
 }
 
@@ -126,13 +102,13 @@ let STAFF=[
 
 const ROUNDS=[
   {time:"12:00",tasks:["ต้มไก่ป้อนแมว (เสร็จก่อน 12:00!)","สั่งน้ำแข็ง","ปล่อยแมวเข้าห้องคาเฟ่"]},
-  {time:"12:30",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
-  {time:"14:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
-  {time:"16:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
-  {time:"18:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง","ปิดแอร์"]},
+  {time:"12:30",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  {time:"14:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  {time:"16:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  {time:"18:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง","ปิดแอร์"]},
   {time:"19:10",tasks:["เปิดแอร์"]},
-  {time:"20:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็คสต็อครายวัน (ครัว)","เช็คสต็อครายวัน (ห้องแมว)","เช็คสต็อครายวัน (บาร์น้ำ)","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
-  {time:"22:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็ดตามผนัง","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  {time:"20:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","เช็คสต็อครายวัน (ครัว)","เช็คสต็อครายวัน (ห้องแมว)","เช็คสต็อครายวัน (บาร์น้ำ)","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
+  {time:"22:00",tasks:["เช็ดตา/จมูกแมว","เช็ครอยเปื้อนตามผนัง","เช็คความสะอาดโต๊ะ","เช็คข้าว/น้ำแมว","ให้แคทนิป","เช็คปลอกคอ/ตัดเศษด้าย","เช็ดฉี่/สำรวจฉี่ทั่วห้อง"]},
   {time:"01:30",tasks:[
     "ดูดฝุ่น ถูพื้น กลิ้งขน (ห้องคาเฟ่หลังเก็บแมว)",
     "เช็ดฝาโดม กระบะทราย",
@@ -142,6 +118,9 @@ const ROUNDS=[
     "ดูแลของเล่นแมว / จัดเก็บ"
   ]}
 ];
+
+// ── การเปลี่ยนแปลง #3: เอา "เช็ดตามผนัง" ออกจากทุกรอบ ──
+// (ทำตอน build TASKS แทนการแก้ ROUNDS เพื่อไม่กระทบ UI ที่แสดงชื่อรอบ)
 
 const DAILY_LIST=[
   {name:"เปิดหน้าร้าน",deadline:"12:00"},
@@ -162,18 +141,21 @@ const DAILY_LIST=[
   {name:"ปิดหน้าร้าน",deadline:""},
   {name:"ทำความสะอาดห้องน้ำ",deadline:""},
   {name:"ทำความสะอาดห้องแมวเล็กรอบเย็น",deadline:""},
-  {name:"เช็คสต็อกของ",deadline:""},
+  // ── การเปลี่ยนแปลง #1: เอา "เช็คสต็อกของ" ออก ──
 ];
-const BARISTA_LIST=[{t:"11:30",n:"เปิดรั้ว/เปิดน้ำเด็ก/จัดโต๊ะหน้าร้าน"},{t:"11:40",n:"ดูดฝุ่น + ถูพื้น"},{t:"11:50",n:"เปิดไฟตู้เค้ก เรียงของ"},{t:"11:55",n:"เช็คความพร้อมทุกอย่างก่อนเปิดร้าน"},{t:"12:15",n:"เช็ดกระจกโซนห้องชงน้ำ"},{t:"12:25",n:"ทำความสะอาดแก้ว และเติมน้ำบนศาล (ส่งรูป)"},{t:"21:00",n:"เช็คสต็อกทุกอย่าง"},{t:"23:50",n:"เช็คเคลียร์เคาน์เตอร์"}];
+// ── การเปลี่ยนแปลง #1: เอา "เช็คสต็อคทุกอย่าง" ออกจาก BARISTA_LIST ──
+const BARISTA_LIST=[{t:"11:30",n:"เปิดรั้ว/เปิดน้ำเด็ก/จัดโต๊ะหน้าร้าน"},{t:"11:40",n:"ดูดฝุ่น + ถูพื้น"},{t:"11:50",n:"เปิดไฟตู้เค้ก เรียงของ"},{t:"11:55",n:"เช็คความพร้อมทุกอย่างก่อนเปิดร้าน"},{t:"12:15",n:"เช็ดกระจกโซนห้องชงน้ำ"},{t:"12:25",n:"ทำความสะอาดแก้ว และเติมน้ำบนศาล (ส่งรูป)"},{t:"23:50",n:"เช็คเคลียร์เคาน์เตอร์"}];
 
-const PAINT_FREE=["เช็ดโต๊ะเพ้นท์","จัดเก้าอี้ให้เรียบร้อย","เช็กสีเพ้นท์ครบทุกสี","เติมน้ำในแก้วล้างพู่กัน","เช็กพู่กันสะอาดพร้อมใช้","จัดจานสี","เติมทิชชู","เช็กผ้ากันเปื้อน","เช็กน้ำยาเคลือบเงา","เช็กของเพ้นท์ให้ครบ","เช็ดฝุ่นชั้นวาง","เปิดไฟโซนเพ้นท์","จัดโชว์งานตัวอย่าง"];
+const PAINT_FREE=["จัดเก้าอี้ให้เรียบร้อย","เช็กสีเพ้นท์ครบทุกสี","เติมน้ำในแก้วล้างพู่กัน","เช็กพู่กันสะอาดพร้อมใช้","จัดจานสี","เติมทิชชู","เช็กผ้ากันเปื้อน","เช็กน้ำยาเคลือบเงา","เช็กของเพ้นท์ให้ครบ","เปิดไฟโซนเพ้นท์","จัดโชว์งานตัวอย่าง"];
+// ── การเปลี่ยนแปลง #2: เอา "เช็ดโต๊ะเพ้นท์" และ "เช็ดฝุ่นชั้นวาง" ออกจาก PAINT_FREE ──
 const PAINT_ROUNDS=[
   {time:"12:40",tasks:["ปัดฝุ่นโซนเพ้นท์","เช็ดอุปกรณ์ และเช็คอุปกรณ์ของหมด/ของครบ","เช็ดโต๊ะเพ้นท์","จัดระเบียบอุปกรณ์","จัดผ้าม่าน","เช็กความสะอาดหน้าร้าน"]},
   {time:"18:30",tasks:["ปัดฝุ่นโซนเพ้นท์","เช็ดอุปกรณ์ และเช็คอุปกรณ์ของหมด/ของครบ","เช็ดโต๊ะเพ้นท์","จัดระเบียบอุปกรณ์","จัดผ้าม่าน","เช็กความสะอาดหน้าร้าน"]}
 ];
 
 const BATHROOM_NAMES=["ประตูห้องน้ำทุกบาน","พื้นห้องน้ำ ด้านใน/นอก","โถส้วม","กระจก + ซิงค์ล้างมือ","กระดาษทิชชูใน/นอก","น้ำยาล้างมือ","จัดเรียงรองเท้าหน้าห้องน้ำ"];
-const KITCHEN_NAMES=["กวาดพื้น + ถูพื้น","ดูดฝุ่น + เก็บขนแมว","เช็ดโต๊ะทั้งหมด","เช็คและทำความสะอาดเครื่องใช้ไฟฟ้า","จัดของ/เคลียร์ขยะ","เตรียมวัตถุดิบอาหาร","เช็คสต็อกวัตถุดิบ"];
+// ── การเปลี่ยนแปลง #1: เอา "เช็คสต็อกวัตถุดิบ" ออกจาก KITCHEN_NAMES ──
+const KITCHEN_NAMES=["กวาดพื้น + ถูพื้น","ดูดฝุ่น + เก็บขนแมว","เช็ดโต๊ะทั้งหมด","เช็คและทำความสะอาดเครื่องใช้ไฟฟ้า","จัดของ/เคลียร์ขยะ","เตรียมวัตถุดิบอาหาร"];
 const CATS=["โซจู","ดลใจ","วากิว","คุมะ","กอมเบ","โยชิ","ยูตะ","ชาไทย","บานอฟฟี่","น้ำตาล","นมสด","ทรัฟเฟิล","เลดี้","สโนว์","ชาแนล","ลาล่า","แพรพรรณ","คิวปิด","มัสตาร์ด","จินดี้","มะขาม","เจนนี่","นูเทลล่า","ข้าวพอง","เกรเทล","แซลลี่","รามิ","โรร่า","แคปหมู","อ่องปู","แพรไหม","แพรวา","มากิ","นิกิ","อากิ","โคลอี้","โมอา","โนอา","จินอา","ลีอา","ปีใหม่","คริสมาสต์"];
 const KITTENS=[{id:"k1",name:"ลูกแมว (ขาวแต้มเทา)",emoji:"🐱"},{id:"k2",name:"ลูกแมว (จมูกดำ)",emoji:"🐾"},{id:"k3",name:"ลูกแมว (ลายเสือ)",emoji:"🐯"}];
 const SPECIAL=["โยชิ","ดลใจ","กอมเบ","โซจู","ลาล่า","ข้าวพอง","ปีใหม่","คริสมาสต์","ชาแนล","มัสตาร์ด"];
@@ -198,8 +180,9 @@ function getWeekISO(){
 }
 const weekISO=getWeekISO();
 
+// ── การเปลี่ยนแปลง #3: filter "เช็ดตามผนัง" ออกตอน build TASKS ──
 function mkTask(prefix,names,round,deadline,cat){return names.map((n,i)=>({id:`${prefix}${i}`,name:n,round,deadline,category:cat,assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));}
-let TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
+let TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.filter(t=>t!=="เช็ดตามผนัง").map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
 fixTaskAssignees();
 let DAILY_TASKS=DAILY_LIST.map((item,i)=>({id:`d${i}`,name:item.name,round:"รายวัน",deadline:item.deadline||"ก่อนเลิกงาน",category:"daily",assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));
 
@@ -219,7 +202,16 @@ let WEEKLY_ALL=Object.entries(WEEKLY_TASKS).flatMap(([dow,tasks])=>tasks.map(t=>
 
 function allTasks(){return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS,...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS];}
 function updateAllArr(id,patch){const upd=arr=>arr.map(t=>t.id===id?{...t,...patch}:t);TASKS=upd(TASKS);DAILY_TASKS=upd(DAILY_TASKS);BARISTA_TASKS=upd(BARISTA_TASKS);BATHROOM_TASKS=upd(BATHROOM_TASKS);KITCHEN_TASKS=upd(KITCHEN_TASKS);PAINT_FREE_TASKS=upd(PAINT_FREE_TASKS);PAINT_ROUND_TASKS=upd(PAINT_ROUND_TASKS);WEEKLY_TODAY=upd(WEEKLY_TODAY);WEEKLY_ALL=upd(WEEKLY_ALL);}
-function resetAllTasks(){TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));DAILY_TASKS=DAILY_LIST.map((item,i)=>({id:`d${i}`,name:item.name,round:"รายวัน",deadline:item.deadline||"ก่อนเลิกงาน",category:"daily",assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน","kitchen");PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้นท์-ทั่วไป",deadline:"ก่อนเลิกงาน",category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));}
+function resetAllTasks(){
+  TASKS=ROUNDS.flatMap((r,ri)=>r.tasks.filter(t=>t!=="เช็ดตามผนัง").map((t,ti)=>({id:`r${ri}-${ti}`,round:r.time,name:t,deadline:r.time,category:"round",assignee:STAFF[2+(ti%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
+  DAILY_TASKS=DAILY_LIST.map((item,i)=>({id:`d${i}`,name:item.name,round:"รายวัน",deadline:item.deadline||"ก่อนเลิกงาน",category:"daily",assignee:STAFF[2+(i%2)]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));
+  BARISTA_TASKS=BARISTA_LIST.map((t,i)=>({id:`b${i}`,name:t.n,round:"บาริสต้า",deadline:t.t,category:"barista",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,time:t.t}));
+  BATHROOM_TASKS=mkTask("bt",BATHROOM_NAMES,"ห้องน้ำ","ก่อนเลิกงาน","bathroom");
+  KITCHEN_TASKS=mkTask("kt",KITCHEN_NAMES,"ห้องครัว","ก่อนเลิกงาน","kitchen");
+  PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้นท์-ทั่วไป",deadline:"ก่อนเลิกงาน",category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null}));
+  PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
+  WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));
+}
 
 function isTimePast(hhmm){
   if(!hhmm||hhmm==="ก่อนเลิกงาน")return false;
@@ -256,8 +248,7 @@ const ST={
   damageForm:{item:"",reason:"",photos:[]},
   damageLogs:[],
   kittenFormError:[],
-  // ▼▼▼ NEW: validate cat check
-  catCheckError:null, // null | "items" | "photo"
+  catCheckError:null,
 };
 
 const KITTEN_REQUIRED=[
@@ -350,7 +341,6 @@ async function saveSettings(){await fbSet(`settings/appSettings`,{...ST.settings
 function setCatCheckItem(cat,item,val){if(!ST.catCheckItems[cat])ST.catCheckItems[cat]={};ST.catCheckItems[cat][item]=val;ST.catCheckError=null;render();}
 function setExtra(id,key,val){if(!ST.taskExtraData[id])ST.taskExtraData[id]={};ST.taskExtraData[id][key]=val;fbUp(`taskExtra/${todayISO}`,{[id]:ST.taskExtraData[id]});}
 
-// ▼▼▼ NEW: helper — ตรวจ cat checklist ครบไหม (ทุก item ต้องไม่ใช่ "")
 function catCheckComplete(cat){
   const items=ST.catCheckItems[cat]||{};
   return CAT_CHECK_ITEMS.every(item=>items[item]&&items[item]!=="");
@@ -548,13 +538,11 @@ function main(){
   }
 
   else if(ST.tab==="tasks"){
-    // ▼▼▼ CHANGE #1: taskRow แสดง recordedBy ถ้าต่างจาก assignee
     function taskRow(t){
       const eff=getEffStatus(t);const isLate=(eff==="เลยเวลา"&&t.status==="ยังไม่ทำ");const sent=t.status!=="ยังไม่ทำ";const showBadge=sent?t.status:(isLate?"เลยเวลา":"ยังไม่ทำ");
       const photoCount=t.photoUrl?t.photoUrl.split(",").filter(Boolean).length:0;
       const extra=ST.taskExtraData[t.id];
       const hasDeadlineWarn=t.category==="daily"&&t.deadline&&t.deadline!=="ก่อนเลิกงาน"&&t.deadline!=="ตามเวลาที่กำหนด";
-      // ▼ แสดง "บันทึกโดย X" ถ้า recordedBy มีค่าและต่างจาก assignee
       const showRecordedBy=t.recordedBy&&t.recordedBy!==t.assignee;
       return`<div class="tr" onclick="openT('${t.id}')">
         <div style="flex:1;margin-right:8px">
@@ -582,7 +570,7 @@ function main(){
     const tabs=[["round","รอบงาน"],["daily","รายวัน"],["barista","บาริสต้า"],["paint","🎨เพ้นท์"],["bathroom","ห้องน้ำ"],["kitchen","ห้องครัว"],["weekly","รายสัปดาห์"]];
     content=`<div class="pad">
       <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${ST.taskTab===k?"active":""}" onclick="ST.taskTab='${k}';render()">${l}</button>`).join("")}</div>
-      ${ST.taskTab==="round"?ROUNDS.map((r,ri)=>{const rt=TASKS.filter(t=>t.round===r.time);const dn=rt.filter(t=>["ผ่าน","รอตรวจ"].includes(t.status)).length;const rLate=isTimePast(r.time);const is12=r.time==="12:00";return`<div class="card" style="${is12?"border:.5px solid #D85A30":""}"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><b style="${rLate?"color:#A32D2D":is12?"color:#D85A30":""}">รอบ ${r.time}${rLate?" ⚠️":""}${is12?" 🍗🧊":""}</b><span style="font-size:11px;color:#5F5E5A">${dn}/${rt.length}</span></div>${is12?`<div style="font-size:10px;color:#D85A30;margin-bottom:4px">⚠️ ต้มไก่ต้องเสร็จก่อน 12:00!</div>`:""}<div class="pb2"><div class="pf" style="width:${Math.round(dn/rt.length*100)}%;background:${dn===rt.length?"#639922":is12?"#D85A30":"#993556"}"></div></div>${rt.map(t=>taskRow(t)).join("")}</div>`;}).join(""):""}
+      ${ST.taskTab==="round"?ROUNDS.map((r,ri)=>{const rt=TASKS.filter(t=>t.round===r.time);const dn=rt.filter(t=>["ผ่าน","รอตรวจ"].includes(t.status)).length;const rLate=isTimePast(r.time);const is12=r.time==="12:00";return`<div class="card" style="${is12?"border:.5px solid #D85A30":""}"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><b style="${rLate?"color:#A32D2D":is12?"color:#D85A30":""}">รอบ ${r.time}${rLate?" ⚠️":""}${is12?" 🍗🧊":""}</b><span style="font-size:11px;color:#5F5E5A">${dn}/${rt.length}</span></div>${is12?`<div style="font-size:10px;color:#D85A30;margin-bottom:4px">⚠️ ต้มไก่ต้องเสร็จก่อน 12:00!</div>`:""}<div class="pb2"><div class="pf" style="width:${rt.length?Math.round(dn/rt.length*100):0}%;background:${dn===rt.length?"#639922":is12?"#D85A30":"#993556"}"></div></div>${rt.map(t=>taskRow(t)).join("")}</div>`;}).join(""):""}
       ${ST.taskTab==="daily"?`<div class="card">${DAILY_TASKS.map(t=>taskRow(t)).join("")}</div>`:""}
       ${ST.taskTab==="barista"?`<div class="card">${BARISTA_TASKS.map(t=>taskRow(t)).join("")}</div>`:""}
       ${ST.taskTab==="paint"?`
@@ -814,7 +802,6 @@ function main(){
       const isChicken=t.name.startsWith("ต้มไก่");
       const isIce=t.name.startsWith("สั่งน้ำแข็ง");
       const extra=ST.taskExtraData[t.id]||{};
-      // ▼ แสดง recordedBy ใน modal
       const showRecordedBy=t.recordedBy&&t.recordedBy!==t.assignee;
       modal=`<div class="modal" onclick="if(event.target===this)closeM()"><div class="mc">
         <div style="font-weight:500;font-size:15px;margin-bottom:2px">${t.name}</div>
@@ -946,17 +933,14 @@ function main(){
     </div></div>`;
   }
 
-  // ▼▼▼ CHANGE #2: Cat Modal — validate checklist ครบ + มีรูป
   else if(ST.catModal){
     const cat=ST.catModal,log=ST.catLogs[cat]||{},catSt=log.status||"";
     const needWipe=SPECIAL_WIPE.includes(cat);
     const catPhotos=log.photoUrl?log.photoUrl.split(",").filter(Boolean):[];
     const checkItems=ST.catCheckItems[cat]||{};
-    // ▼ ตรวจ validate
     const itemsComplete=catCheckComplete(cat);
     const hasPhotoPrev=(log.photoPreviews||[]).length>0;
     const catErr=ST.catCheckError;
-    // จำนวน item ที่ยังไม่เลือก
     const missingItems=CAT_CHECK_ITEMS.filter(item=>!checkItems[item]||checkItems[item]==="");
     modal=`<div class="modal" onclick="if(event.target===this){ST.catModal=null;ST.catCheckError=null;render()}"><div class="mc">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
@@ -1116,7 +1100,6 @@ function openT(id){ST.taskModal=id;ST.taskPhotos[id]=[];ST.taskAI=null;ST.taskAn
 function closeM(){ST.taskModal=null;ST.leaveModal=false;ST.fineModal=null;render();}
 function setExtra(id,key,val){if(!ST.taskExtraData[id])ST.taskExtraData[id]={};ST.taskExtraData[id][key]=val;fbUp(`taskExtra/${todayISO}`,{[id]:ST.taskExtraData[id]});render();}
 
-// ▼▼▼ CHANGE #1: subT — บันทึก recordedBy = user ที่ login อยู่
 async function subT(id,isLate){
   const photos=ST.taskPhotos[id]||[];if(!photos.length)return;
   const note=document.getElementById("tNote")?.value||"",ai=ST.taskAI;
@@ -1124,7 +1107,7 @@ async function subT(id,isLate){
   const t=allTasks().find(x=>x.id===id)||WEEKLY_TODAY.find(x=>x.id===id)||WEEKLY_ALL.find(x=>x.id===id);
   const late=isLate||isTimePast(t?.deadline);const submittedAt=fmtTime(thaiNow());
   const extra=ST.taskExtraData[id]||{};
-  const recordedBy=ST.loginUser.name; // ▼ user ที่กด submit จริง
+  const recordedBy=ST.loginUser.name;
   const patch={status:"รอตรวจ",submittedAt,note,photoUrl,aiScore:ai?.score,aiStatus:ai?.status,isLate:late,recordedBy};
   updateAllArr(id,patch);ST.taskModal=null;ST.syncing=true;render();
   if(t?.category==="weekly"){
@@ -1200,7 +1183,6 @@ async function saveDamage(){
 function prevCatP(inp,cat){const files=Array.from(inp.files);files.forEach(file=>{const r=new FileReader();r.onload=e=>{if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catLogs[cat].photoPreviews)ST.catLogs[cat].photoPreviews=[];if(!ST.catLogs[cat].photoFiles)ST.catLogs[cat].photoFiles=[];ST.catLogs[cat].photoPreviews.push(e.target.result);ST.catLogs[cat].photoFiles.push(file);render();};r.readAsDataURL(file);});}
 function openCat(cat){if(!ST.catLogs[cat])ST.catLogs[cat]={};if(!ST.catCheckItems[cat])ST.catCheckItems[cat]={};ST.catModal=cat;ST.catCheckError=null;ST.catNote="";ST.catDetail="";ST.catUrg="";render();}
 
-// validate ก่อน save — ไม่ปิด modal ถ้ายังไม่ครบ
 function trySaveCat(cat){
   const itemsOk=catCheckComplete(cat);
   const photoOk=(ST.catLogs[cat]?.photoPreviews||[]).length>0;
@@ -1212,12 +1194,10 @@ function trySaveCat(cat){
 
 async function saveCat(cat){
   const log=ST.catLogs[cat]||{};
-  // อ่านค่า DOM ขณะที่ modal ยังเปิดอยู่
   const note=document.getElementById("catNote")?.value||"";
   const detail=document.getElementById("abnDetail")?.value||"";
   const urg=document.getElementById("urgency")?.value||"";
   ST.syncing=true;
-  // ปิด modal หลังอ่านค่าแล้ว
   ST.catModal=null;
   render();
   const photoFiles=log.photoFiles||[];
@@ -1226,7 +1206,7 @@ async function saveCat(cat){
   const t=fmtTime(thaiNow());
   const checkItems=ST.catCheckItems[cat]||{};
   const abnormalFromCheck=Object.values(checkItems).includes("ผิดปกติ");
-  const recordedBy=ST.loginUser.name; // ▼ user ที่บันทึกจริง
+  const recordedBy=ST.loginUser.name;
   const data={status:"รอตรวจ",time:t,note,abnormal:log.abnormal||abnormalFromCheck,abnormalDetail:detail,urgency:urg,photoUrl,recordedBy,checkItems};
   ST.catLogs[cat]={...log,...data,photoPreviews:[],photoFiles:[]};
   await fbSet(`catHealth/${todayISO}/${cat}`,data);
@@ -1298,7 +1278,6 @@ function exportCSV(){
   });
   blank();
   rows.push(["📋 งานเลยเวลาที่ใช้คำนวณค่าปรับ"]);
-  // ▼ เพิ่มคอลัมน์ user ที่บันทึก
   head("พนักงาน(ผู้รับผิดชอบ)","user ที่บันทึก","ชื่องาน","หมวด","กำหนดเวลา","สถานะ","ค่าปรับ/ชิ้น(฿)");
   let anyLate=false;
   STAFF.filter(s=>s.role==="staff").forEach(s=>{
@@ -1345,8 +1324,4 @@ function exportCSV(){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"}));a.download=`Mori-รายงาน-${todayISO}.csv`;a.click();
 }
 
-document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh"><div style="font-size:40px">🐱</div><div style="font-size:13px;color:#5F5E5A;margin-top:8px">กำลังโหลด...</div></div>`;
-loadState();
-</script>
-</body>
-</html>
+document.getElementById("app").innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center
