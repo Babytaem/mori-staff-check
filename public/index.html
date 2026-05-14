@@ -74,6 +74,7 @@ function fmtTime(d){return d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"
 function fmtDate(d){return d.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"long",day:"numeric"});}
 function fmtISO(d){const off=7*60,loc=new Date(d.getTime()+off*60000);return loc.toISOString().slice(0,10);}
 
+// ── WORK DATE: 00:00–06:59 ยังนับเป็นวันเดิม, 07:00+ ขึ้นวันใหม่ ──
 function getWorkDate(d){
   const h=d.getHours();
   if(h<7){const prev=new Date(d);prev.setDate(prev.getDate()-1);return fmtISO(prev);}
@@ -202,6 +203,7 @@ let PAINT_FREE_TASKS=PAINT_FREE.map((n,i)=>({id:`pf${i}`,name:n,round:"เพ้
 let PAINT_ROUND_TASKS=PAINT_ROUNDS.flatMap((r,ri)=>r.tasks.map((t,ti)=>({id:`pr${ri}-${ti}`,round:`เพ้นท์-${r.time}`,name:t,deadline:r.time,category:"paint",assignee:STAFF[2]?.name||"",status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null})));
 let WEEKLY_TODAY=(WEEKLY_TASKS[todayDow]||[]).map(t=>({...t,status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true}));
 let WEEKLY_ALL=Object.entries(WEEKLY_TASKS).flatMap(([dow,tasks])=>tasks.map(t=>({...t,dow:parseInt(dow),dayName:DOW_TH[parseInt(dow)],status:"ยังไม่ทำ",photoUrl:null,note:"",submittedAt:null,category:"weekly",multiPhoto:true})));
+// หวีขน
 let GROOM_TASKS=CATS.map((c,i)=>({id:`gr${i}`,name:c,status:"",location:"",photoUrl:null,note:"",submittedAt:null,recordedBy:null}));
 
 function allTasks(){return[...TASKS,...DAILY_TASKS,...BARISTA_TASKS,...BATHROOM_TASKS,...KITCHEN_TASKS,...PAINT_FREE_TASKS,...PAINT_ROUND_TASKS];}
@@ -257,6 +259,7 @@ const ST={
   groomModal:null,
   groomPhotos:{},
 };
+
 
 const KITTEN_REQUIRED=[
   {key:"milk",label:"🍼 กินนมแม่ไหม"},
@@ -328,30 +331,7 @@ function startListening(){
 
 function mockAI(){const s=[92,87,76,88,95,71,83][Math.floor(Math.random()*7)];const n=["ดูสะอาดเรียบร้อยดี","พบคราบเล็กน้อย แนะนำเช็ดซ้ำ","ภาพมืดเกินไป ถ่ายใหม่","รูปชัดเจน ผ่านเกณฑ์","พบขนแมว แนะนำเช็ดเพิ่ม"][Math.floor(Math.random()*5)];return{score:s,status:s>=80?"ผ่าน":s>=65?"ควรตรวจซ้ำ":"ไม่ผ่าน",note:n};}
 async function gasPost(a,d){try{await fetch(GAS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:a,data:d})});}catch(e){}}
-
-// ══════════════════════════════════════════════════════════════
-// upload() — Lossy q75 + ชื่อไฟล์อัตโนมัติ (PATCHED)
-// ══════════════════════════════════════════════════════════════
-async function upload(file,ctx={}){
-  const fd=new FormData();
-  const now2=thaiNow();
-  const ds=fmtISO(now2).replace(/-/g,"");
-  const ts=fmtTime(now2).replace(":","");
-  const sp=((ctx.staff||ST.loginUser?.name||"unknown")).replace(/\s+/g,"_").replace(/[^\u0E00-\u0E7Fa-zA-Z0-9_]/g,"");
-  const tp=((ctx.type||"photo")).replace(/\s+/g,"_").replace(/[^\u0E00-\u0E7Fa-zA-Z0-9_]/g,"");
-  const pid=`mori-staff-check/${ds}_${ts}_${sp}_${tp}`;
-  fd.append("file",file);
-  fd.append("upload_preset",PRESET);
-  fd.append("public_id",pid);
-  fd.append("quality","75");
-  fd.append("format","auto");
-  try{
-    const r=await fetch(`https://api.cloudinary.com/v1_1/${CLD}/image/upload`,{method:"POST",body:fd});
-    const j=await r.json();
-    return j.secure_url||null;
-  }catch(e){return null;}
-}
-
+async function upload(file){const fd=new FormData();fd.append("file",file);fd.append("upload_preset",PRESET);fd.append("folder","mori-staff-check");try{const r=await fetch(`https://api.cloudinary.com/v1_1/${CLD}/image/upload`,{method:"POST",body:fd});const j=await r.json();return j.secure_url||null;}catch(e){return null;}}
 function b64toFile(d,n){const a=d.split(","),m=a[0].match(/:(.*?);/)[1],s=atob(a[1]);let l=s.length;const u=new Uint8Array(l);while(l--){u[l]=s.charCodeAt(l);}return new File([u],n,{type:m});}
 function bc(st){
   if(["ผ่าน","เข้างานแล้ว","อนุมัติ"].includes(st))return"background:#EAF3DE;color:#639922";
@@ -650,6 +630,34 @@ function main(){
       ${ST.taskTab==="weekly"?`<div class="card" style="background:#F0EEF9;border:.5px solid #C4BEF0"><div style="font-size:12px;font-weight:500;color:#5B4FCF">📅 รีเซ็ตทุกวันอาทิตย์ · สัปดาห์: ${weekISO}</div><div style="font-size:11px;color:#5B4FCF;margin-top:3px">⚠️ งานสต็อคต้องถ่ายรูปใบสต็อค ถ่ายได้หลายรูป</div></div>
         ${WEEKLY_TODAY.length>0?`<div class="sec">วัน${DOW_TH[todayDow]}นี้</div><div class="card">${WEEKLY_TODAY.map(t=>taskRow(t)).join("")}</div>`:`<div class="card" style="text-align:center;color:#888780;font-size:12px;padding:14px">ไม่มีงานวัน${DOW_TH[todayDow]}</div>`}
         <div class="sec">งานทุกวันในสัปดาห์</div>${[0,1,2,4,5].map(dow=>{const dT=WEEKLY_ALL.filter(t=>t.dow===dow);if(!dT.length)return"";const isToday=dow===todayDow;return`<div class="card" style="${isToday?"border:.5px solid #5B4FCF":""}"><div style="font-size:12px;font-weight:500;color:${isToday?"#5B4FCF":"#5F5E5A"};margin-bottom:6px">${isToday?"📍":""}วัน${DOW_TH[dow]}</div>${dT.map(t=>taskRow(t)).join("")}</div>`;}).join("")}`:""}
+      ${ST.taskTab==="groom"?`
+        <div style="background:#FCEBEB;border-radius:12px;padding:12px;margin-bottom:12px;border:.5px solid #F4C0C0">
+          <div style="font-size:13px;font-weight:700;color:#A32D2D;margin-bottom:6px">🪮 หวีขนละเอียด — อ่านก่อนเริ่มงาน</div>
+          <div style="font-size:12px;color:#A32D2D;line-height:1.6">ให้หวีขนละเอียดและจริงจัง งานนี้ไม่รวมอยู่ในงานที่ต้องหวีก่อนปล่อยทุกวัน แต่หมายถึงทุกตัวต้องได้รับการหวีอย่างละเอียดค่ะ ตัวที่มีสังกะตังและขนจับตัวเป็นก้อน ทำให้ต้องรักษาหวีและดูแลทุกวันเพื่อป้องกันก่อนเกิดเหตุค่ะ</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;color:#5F5E5A">หวีแล้ว ${GROOM_TASKS.filter(g=>g.status).length}/${GROOM_TASKS.length} ตัว</div>
+          <div style="display:flex;gap:4px">
+            <span class="badge" style="background:#EAF3DE;color:#639922">${GROOM_TASKS.filter(g=>g.status==="ปล่อยห้องคาเฟ่").length} คาเฟ่</span>
+            <span class="badge" style="background:#E6F1FB;color:#185FA5">${GROOM_TASKS.filter(g=>g.status==="อยู่ในห้องเล็ก").length} ห้องเล็ก</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${GROOM_TASKS.map((g,i)=>{
+            const isSpec=SPECIAL.includes(g.name),needWipe=SPECIAL_WIPE.includes(g.name);
+            const col=g.status==="ปล่อยห้องคาเฟ่"?"#EAF3DE":g.status==="อยู่ในห้องเล็ก"?"#E6F1FB":"#fff";
+            const bc2=g.status==="ปล่อยห้องคาเฟ่"?"#C8E6A0":g.status==="อยู่ในห้องเล็ก"?"#B3D4F5":"#E8E3DA";
+            const pc=g.photoUrl?g.photoUrl.split(",").filter(Boolean).length:0;
+            return`<div onclick="openGroom('${g.id}')" style="background:${col};border:.5px solid ${bc2};border-radius:10px;padding:8px 10px;cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <span style="font-size:12px">${needWipe?"🧤":isSpec?"⭐":""} ${g.name}</span>
+                <span style="font-size:10px;color:#5F5E5A">#${i+1}</span>
+              </div>
+              ${g.status?`<div style="margin-top:3px"><span class="badge" style="background:${g.status==="ปล่อยห้องคาเฟ่"?"#639922":"#185FA5"};color:#fff;font-size:9px;padding:1px 5px">${g.status==="ปล่อยห้องคาเฟ่"?"🏠 คาเฟ่":"🏡 ห้องเล็ก"}</span></div>`:`<div style="font-size:10px;color:#888780;margin-top:2px">ยังไม่หวี</div>`}
+              ${pc>0?`<div style="font-size:9px;color:#185FA5;margin-top:1px">📸 ${pc} รูป</div>`:""}
+              ${g.note?`<div style="font-size:9px;color:#5F5E5A;margin-top:1px">💬 ${g.note}</div>`:""}
+            </div>`;}).join("")}
+        </div>`:""}
     </div>`;
   }
 
@@ -1173,14 +1181,14 @@ function pinP(d){if(d==="⌫"){ST.pinInput=ST.pinInput.slice(0,-1);render();retu
 async function toggleHol(){if(!confirm(ST.holidayMode?"ยืนยันเปิดร้านปกติ?":"ยืนยันตั้งเป็นวันหยุดร้าน?"))return;ST.holidayMode=!ST.holidayMode;await fbSet(`settings/holidayMode`,ST.holidayMode);addN(ST.holidayMode?"🏖️ วันหยุดร้าน":"✅ เปิดร้านปกติแล้ว",ST.holidayMode);render();}
 function handleCI(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{ST.checkInPhoto=e.target.result;render();};r.readAsDataURL(f);}
 function handleCO(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{ST.checkOutPhoto=e.target.result;render();};r.readAsDataURL(f);}
-function handleTP(inp){const files=Array.from(inp.files);if(!files.length)return;if(!ST.taskPhotos[ST.taskModal])ST.taskPhotos[ST.taskModal]=[];ST.taskAnalyzing=true;render();let done=0;files.forEach(file=>{const r=new FileReader();r.onload=e=>{ST.taskPhotos[ST.taskModal].push({preview:e.target.result,url:null,file});done++;if(done===files.length){Promise.all(ST.taskPhotos[ST.taskModal].filter(p=>!p.url).map(p=>upload(p.file,{staff:ST.loginUser?.name,type:"task"}).then(u=>{p.url=u||p.preview;}))).then(()=>{ST.taskAI=mockAI();ST.taskAnalyzing=false;render();});}};r.readAsDataURL(file);});}
+function handleTP(inp){const files=Array.from(inp.files);if(!files.length)return;if(!ST.taskPhotos[ST.taskModal])ST.taskPhotos[ST.taskModal]=[];ST.taskAnalyzing=true;render();let done=0;files.forEach(file=>{const r=new FileReader();r.onload=e=>{ST.taskPhotos[ST.taskModal].push({preview:e.target.result,url:null,file});done++;if(done===files.length){Promise.all(ST.taskPhotos[ST.taskModal].filter(p=>!p.url).map(p=>upload(p.file).then(u=>{p.url=u||p.preview;}))).then(()=>{ST.taskAI=mockAI();ST.taskAnalyzing=false;render();});}};r.readAsDataURL(file);});}
 
 async function doCI(){
   if(!ST.checkInPhoto)return;const me=ST.loginUser;
   const now2=thaiNow();const h=now2.getHours(),m=now2.getMinutes();const late=h*60+m>11*60+30;const st=late?"มาสาย":"เข้างานแล้ว";const t=fmtTime(now2);
   const s=STAFF.find(x=>x.id===me.id);if(s){s.checkIn=t;s.status=st;}
   ST.syncing=true;render();
-  const url=await upload(b64toFile(ST.checkInPhoto,"checkin.jpg"),{staff:me.name,type:"checkin"});const note=document.getElementById("ciNote")?.value||"";
+  const url=await upload(b64toFile(ST.checkInPhoto,"checkin.jpg"));const note=document.getElementById("ciNote")?.value||"";
   await fbSet(`attendance/${todayISO}/${me.name}`,{checkIn:t,status:st,photoUrl:url||"",name:me.name,role:me.role});
   if(s)s.checkInPhoto=url||ST.checkInPhoto;
   await gasPost("checkIn",{date:todayISO,name:me.name,role:me.role,checkInTime:t,status:st,photoUrl:url||"",note});
@@ -1190,7 +1198,7 @@ async function doCO(){
   if(!ST.checkOutPhoto)return;const me=ST.loginUser;const t=fmtTime(thaiNow());
   const s=STAFF.find(x=>x.id===me.id);if(s){s.checkOut=t;s.status="เลิกงานแล้ว";}
   ST.syncing=true;render();
-  const url=await upload(b64toFile(ST.checkOutPhoto,"checkout.jpg"),{staff:me.name,type:"checkout"});
+  const url=await upload(b64toFile(ST.checkOutPhoto,"checkout.jpg"));
   await fbUp(`attendance/${todayISO}/${me.name}`,{checkOut:t,status:"เลิกงานแล้ว",checkOutPhotoUrl:url||""});
   if(s)s.checkOutPhoto=url||ST.checkOutPhoto;
   await gasPost("checkOut",{date:todayISO,name:me.name,checkOutTime:t,checkOutStatus:"เลิกงานแล้ว",photoUrl:url||"",note:""});
@@ -1271,7 +1279,7 @@ async function saveDamage(){
   const reason=document.getElementById("dmgReason")?.value||ST.damageForm.reason;
   if(!item.trim()||!ST.damageForm.photos.length){alert("กรุณากรอกชื่อสิ่งของและถ่ายรูปก่อนส่ง");return;}
   ST.syncing=true;render();
-  const urls=await Promise.all(ST.damageForm.photos.map(p=>p.file?upload(p.file,{staff:ST.loginUser?.name,type:"damage"}):Promise.resolve(p.preview)));
+  const urls=await Promise.all(ST.damageForm.photos.map(p=>p.file?upload(p.file):Promise.resolve(p.preview)));
   const validUrls=urls.filter(Boolean);const t=fmtTime(thaiNow());
   const entry={item,reason,photos:validUrls,time:t,reportedBy:ST.loginUser.name,date:todayISO};
   const newLogs=[...ST.damageLogs,entry];ST.damageLogs=newLogs;
@@ -1300,7 +1308,7 @@ async function saveCat(cat){
   const urg=document.getElementById("urgency")?.value||"";
   ST.syncing=true;ST.catModal=null;render();
   const photoFiles=log.photoFiles||[];
-  const urls=await Promise.all(photoFiles.map(f=>upload(f,{staff:ST.loginUser?.name,type:"cat_"+cat})));
+  const urls=await Promise.all(photoFiles.map(f=>upload(f)));
   const validUrls=urls.filter(Boolean);const photoUrl=validUrls.join(",");
   const t=fmtTime(thaiNow());
   const checkItems=ST.catCheckItems[cat]||{};
@@ -1337,7 +1345,7 @@ async function saveKitten(id){
   const weight=document.getElementById("kWeight")?.value||f.weight;
   const note=document.getElementById("kNote")?.value||"";
   ST.syncing=true;ST.kittenModal=null;render();
-  const urls=await Promise.all(f.photos.map(p=>p.file?upload(p.file,{staff:ST.loginUser?.name,type:"kitten_"+id}):Promise.resolve(typeof p==="string"?p:p.preview)));
+  const urls=await Promise.all(f.photos.map(p=>p.file?upload(p.file):Promise.resolve(typeof p==="string"?p:p.preview)));
   const validUrls=urls.filter(Boolean);
   const logEntry={time,weight,milk:f.milk,wetFood:f.wetFood,poop:f.poop,pee:f.pee,bloated:f.bloated,eye:f.eye,eyeDrop:f.eyeDrop,fish:f.fish,note,photos:validUrls,recordedBy:ST.loginUser.name};
   const prevLogs=ST.kittenLogs[id]||[];const newLogs=[...prevLogs,logEntry];
@@ -1355,7 +1363,7 @@ async function saveGroom(id){
   const note=document.getElementById("grNote")?.value||"";
   const t=fmtTime(thaiNow());
   ST.syncing=true;ST.groomModal=null;render();
-  const urls=await Promise.all(photos.map(p=>upload(p.file,{staff:ST.loginUser?.name,type:"groom_"+(GROOM_TASKS.find(x=>x.id===id)?.name||id)})));
+  const urls=await Promise.all(photos.map(p=>upload(p.file)));
   const validUrls=urls.filter(Boolean);
   const patch={status:ST.groomLoc,location:ST.groomLoc,photoUrl:validUrls.join(","),note,submittedAt:t,recordedBy:ST.loginUser.name};
   const g=GROOM_TASKS.find(x=>x.id===id);if(g)Object.assign(g,patch);
