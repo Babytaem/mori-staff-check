@@ -59,7 +59,7 @@ textarea{resize:none;height:60px}
 <script>
 const FB_CFG={apiKey:"AIzaSyAVk3RJy2vLErdc14nhaEehp68mHz16uEg",authDomain:"mori-staff-check.firebaseapp.com",databaseURL:"https://mori-staff-check-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"mori-staff-check",storageBucket:"mori-staff-check.firebasestorage.app",messagingSenderId:"218457293626",appId:"1:218457293626:web:79bb0d0623309871b5c603"};
 const GAS="https://script.google.com/macros/s/AKfycbygMIO5u6nH_Jx7afdvWOTLifygMKrpTSGtxYF6hhR0pwG6rSH7yX-Uurw-86-3LmE/exec";
-const CLD="dfdghi7tj",PRESET="mori_staff";
+const CLD="dfdghi7tj",PRESET="mori_staff"; function cldUrl(url,w=200){if(!url||!url.includes('cloudinary'))return url;return url.replace('/upload/',`/upload/w_${w},q_auto,f_auto/`);}
 
 let _fbReady=false;
 async function initFB(){if(_fbReady)return;const{initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");const{getDatabase,ref,set,get,onValue,update,remove}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");const app=initializeApp(FB_CFG);const db=getDatabase(app);window._fb={ref,set,get,onValue,update,remove,db};_fbReady=true;}
@@ -687,7 +687,7 @@ function main(){
           ${logs.length>0?`<div style="margin-top:8px;border-top:.5px solid #F4C0D1;padding-top:8px">
             <div style="font-size:10px;color:#5F5E5A;margin-bottom:4px">รอบล่าสุด: ${logs[logs.length-1].time}</div>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${(logs[logs.length-1].photos||[]).map(url=>`<img src="${url}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${url}','_blank')"/>`).join("")}
+              ${(logs[logs.length-1].photos||[]).map(url=>`<img src="${cldUrl(url,200)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${url}','_blank')"/>`).join("")}
             </div>
           </div>`:""}
         </div>`;}).join("")}
@@ -865,8 +865,8 @@ function main(){
     modal=`<div class="modal" onclick="if(event.target===this){ST.staffModal=null;render()}"><div class="mc">
       <div style="font-weight:500;font-size:15px;margin-bottom:12px">📷 รูปหลักฐาน ${s.name}</div>
       ${canViewAdmin?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <div><div style="font-size:11px;font-weight:500;color:#639922;margin-bottom:6px">🟢 เช็คอิน ${s.checkIn||""}</div>${s.checkInPhoto?`<img src="${s.checkInPhoto}" style="width:100%;border-radius:10px;object-fit:cover;aspect-ratio:1;cursor:pointer" onclick="window.open('${s.checkInPhoto}','_blank')"/><div style="font-size:10px;color:#5F5E5A;text-align:center;margin-top:3px">แตะขยาย</div>`:`<div style="background:#F1EFE8;border-radius:10px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888780">ไม่มีรูป</div>`}</div>
-        <div><div style="font-size:11px;font-weight:500;color:#185FA5;margin-bottom:6px">🔵 เช็คเอาต์ ${s.checkOut||""}</div>${s.checkOutPhoto?`<img src="${s.checkOutPhoto}" style="width:100%;border-radius:10px;object-fit:cover;aspect-ratio:1;cursor:pointer" onclick="window.open('${s.checkOutPhoto}','_blank')"/><div style="font-size:10px;color:#5F5E5A;text-align:center;margin-top:3px">แตะขยาย</div>`:`<div style="background:#F1EFE8;border-radius:10px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888780">ยังไม่เช็คเอาต์</div>`}</div>
+        <div><div style="font-size:11px;font-weight:500;color:#639922;margin-bottom:6px">🟢 เช็คอิน ${s.checkIn||""}</div>${s.checkInPhoto?`<img src="${cldUrl(s.checkInPhoto,200)}" style="width:100%;border-radius:10px;object-fit:cover;aspect-ratio:1;cursor:pointer" onclick="window.open('${s.checkInPhoto}','_blank')"/><div style="font-size:10px;color:#5F5E5A;text-align:center;margin-top:3px">แตะขยาย</div>`:`<div style="background:#F1EFE8;border-radius:10px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888780">ไม่มีรูป</div>`}</div>
+        <div><div style="font-size:11px;font-weight:500;color:#185FA5;margin-bottom:6px">🔵 เช็คเอาต์ ${s.checkOut||""}</div>${s.checkOutPhoto?`<img src="${cldUrl(s.checkOutPhoto,400)}" style="width:100%;border-radius:10px;object-fit:cover;aspect-ratio:1;cursor:pointer" onclick="window.open('${s.checkOutPhoto}','_blank')"/><div style="font-size:10px;color:#5F5E5A;text-align:center;margin-top:3px">แตะขยาย</div>`:`<div style="background:#F1EFE8;border-radius:10px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888780">ยังไม่เช็คเอาต์</div>`}</div>
       </div>`:`<div class="wb">ไม่มีสิทธิ์ดูรูปของบัญชีนี้</div>`}
       <button class="btn" style="background:#F1EFE8;color:#888780" onclick="ST.staffModal=null;render()">ปิด</button>
     </div></div>`;
