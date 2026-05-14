@@ -331,7 +331,7 @@ function startListening(){
 
 function mockAI(){const s=[92,87,76,88,95,71,83][Math.floor(Math.random()*7)];const n=["ดูสะอาดเรียบร้อยดี","พบคราบเล็กน้อย แนะนำเช็ดซ้ำ","ภาพมืดเกินไป ถ่ายใหม่","รูปชัดเจน ผ่านเกณฑ์","พบขนแมว แนะนำเช็ดเพิ่ม"][Math.floor(Math.random()*5)];return{score:s,status:s>=80?"ผ่าน":s>=65?"ควรตรวจซ้ำ":"ไม่ผ่าน",note:n};}
 async function gasPost(a,d){try{await fetch(GAS,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:a,data:d})});}catch(e){}}
-async function upload(file){const fd=new FormData();fd.append("file",file);fd.append("upload_preset",PRESET);fd.append("folder","mori-staff-check");fd.append("quality","auto:low");fd.append("width","1200");fd.append("crop","limit");try{const r=await fetch(`https://api.cloudinary.com/v1_1/${CLD}/image/upload`,{method:"POST",body:fd});const j=await r.json();return j.secure_url||null;}catch(e){return null;}}
+async function upload(file){const fd=new FormData();fd.append("file",file);fd.append("upload_preset",PRESET);fd.append("folder","mori-staff-check");try{const r=await fetch(`https://api.cloudinary.com/v1_1/${CLD}/image/upload`,{method:"POST",body:fd});const j=await r.json();return j.secure_url||null;}catch(e){return null;}}
 function b64toFile(d,n){const a=d.split(","),m=a[0].match(/:(.*?);/)[1],s=atob(a[1]);let l=s.length;const u=new Uint8Array(l);while(l--){u[l]=s.charCodeAt(l);}return new File([u],n,{type:m});}
 function bc(st){
   if(["ผ่าน","เข้างานแล้ว","อนุมัติ"].includes(st))return"background:#EAF3DE;color:#639922";
